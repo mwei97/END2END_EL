@@ -218,7 +218,7 @@ def do_sort(
 ):
     sample['mentions'] = sort_mentions(sample['mentions'], orig_idx_to_sort_idx)
     sample['label_id'] = sort_mentions(sample['label_id'], orig_idx_to_sort_idx)
-    sample['wikidata_id'] = sort_mentions(sample['wikidata_id'], orig_idx_to_sort_idx)
+    #sample['wikidata_id'] = sort_mentions(sample['wikidata_id'], orig_idx_to_sort_idx)
     sample['entity'] = sort_mentions(sample['entity'], orig_idx_to_sort_idx)
     sample['label'] = sort_mentions(sample['label'], orig_idx_to_sort_idx)
 
