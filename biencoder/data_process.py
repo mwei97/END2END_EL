@@ -227,6 +227,13 @@ def get_context_representation_multiple_mentions_idxs(
     sample, tokenizer, max_seq_length,
     mention_key, context_key, ent_start_token, ent_end_token,
 ):
+# mwei todo: modify
+# 1. check length of sample first, if < max_seq_length-2, then directly 
+# - add [CLS], [SEP]
+# - shift mention_idxs by 1
+# - pad to max_seq_length
+# 2. if larger than that: do the original operations to cut and shift
+
     '''
     Also cuts out mentions beyond that context window
 
@@ -241,6 +248,7 @@ def get_context_representation_multiple_mentions_idxs(
 
     # sort mentions / entities / everything associated
     # [[orig_index, [start, end]], ....] --> sort by start, then end
+    # mwei todo: sort_tuples not used, only to check if mention_idxs is sorted?
     sort_tuples = [[i[0], i[1]] for i in sorted(enumerate(mention_idxs), key=lambda x:(x[1][0], x[1][1]))]
     if [tup[1] for tup in sort_tuples] != mention_idxs:
         orig_idx_to_sort_idx = {itm[0]: i for i, itm in enumerate(sort_tuples)}
@@ -285,8 +293,11 @@ def get_context_representation_multiple_mentions_idxs(
     input_ids_window = context_left[-left_quota:] + all_mention_tokens + context_right[:right_quota]
 
     # shift mention_idxs
+
     if len(input_ids) <= max_seq_length - 2:
         try:
+            # if lenght of original input_ids is sufficient to fit in max_seq_length-2, then none of the above
+            # opeartions should be done
             assert input_ids == input_ids_window
         except:
             import pdb
@@ -301,6 +312,7 @@ def get_context_representation_multiple_mentions_idxs(
                     mention_idxs[c][0] - cut_from_left, mention_idxs[c][1] - cut_from_left,
                 ]
 
+    # add [CLS] and [SEP] to the start and end respectively
     input_ids_window = [101] + input_ids_window + [102]
     tokens = tokenizer.convert_ids_to_tokens(input_ids_window)
 
@@ -313,9 +325,9 @@ def get_context_representation_multiple_mentions_idxs(
     assert len(input_ids_window) == max_seq_length
 
     return {
-        "tokens": tokens,
-        "ids": input_ids_window,
-        "mention_idxs": mention_idxs,
+        "tokens": tokens, # text tokens of [CLS] text (after cut) [SEP], len(tokens) not padded to max_seq_length 
+        "ids": input_ids_window, # token ids of tokens, padded to max_seq_length
+        "mention_idxs": mention_idxs, # mention_idxs, shifted if necessary
         # "pruned_ents": [1 for i in range(len(all_mentions)) if i < len(mention_idxs) else 0],  # pruned last N entities, TODO change if changed
     }
 
@@ -326,6 +338,7 @@ def get_candidate_representation(
     candidate_title=None,
     title_tag=ENT_TITLE_TAG,
 ):
+# mwei todo: maybe can modify another version of only have description rather than title+description
     cls_token = tokenizer.cls_token
     sep_token = tokenizer.sep_token
     cand_tokens = tokenizer.tokenize(candidate_desc)
@@ -342,8 +355,8 @@ def get_candidate_representation(
     assert len(input_ids) == max_seq_length
 
     return {
-        "tokens": cand_tokens,
-        "ids": [input_ids],
+        "tokens": cand_tokens, # tokens of [CLS]title[ENT_TITLE]description[SEP], not padded to max_seq_length
+        "ids": [input_ids], # token ids, padded to max_seq_length
     }
 
 
@@ -356,7 +369,7 @@ def process_mention_data(
     mention_key="mention",
     context_key="context",
     label_key="label",
-    title_key='label_title',
+    title_key='entity',
     ent_start_token=ENT_START_TAG,
     ent_end_token=ENT_END_TAG,
     title_token=ENT_TITLE_TAG,
@@ -371,15 +384,17 @@ def process_mention_data(
     Returns /inclusive/ bounds
     '''
     extra_ret_values = {}
+    # Return saved context
     if saved_context_dir is not None and os.path.exists(os.path.join(saved_context_dir, "tensor_tuple.pt")):
         data = torch.load(os.path.join(saved_context_dir, "data.pt"))
         tensor_data_tuple = torch.load(os.path.join(saved_context_dir, "tensor_tuple.pt"))
         return data, tensor_data_tuple, extra_ret_values
 
-    if candidate_token_ids is None and not debug:
-        candidate_token_ids = torch.load(params["cand_token_ids_path"])
-        if logger: logger.info("Loaded saved entities info")
-        extra_ret_values["candidate_token_ids"] = candidate_token_ids
+    # mwei todo: check if this chunk is necessary
+    # if candidate_token_ids is None and not debug:
+    #     candidate_token_ids = torch.load(params["cand_token_ids_path"])
+    #     if logger: logger.info("Loaded saved entities info")
+    #     extra_ret_values["candidate_token_ids"] = candidate_token_ids
 
     processed_samples = []
 
@@ -398,6 +413,9 @@ def process_mention_data(
     sep_token_id = tokenizer.convert_tokens_to_ids("[SEP]")
     for idx, sample in enumerate(iter_):
         assert not add_mention_bounds, "Adding mention bounds, but we have multiple entities per example"
+        if len(sample['mentions'])==0:
+            continue
+        # todo: might not need this context_left part
         if context_key + "_left" in sample:
             context_tokens = get_context_representation_multiple_mentions_left_right(
                 sample, tokenizer, max_context_length,
@@ -414,7 +432,7 @@ def process_mention_data(
 
         label = sample[label_key]
         title = sample.get(title_key)
-        label_ids = sample.get("label_id")
+        label_ids = sample.get("label_id") # mwei todo: label_ids not used (except for candidate_token_ids)
 
         if label is None:
             label = [None]
@@ -424,6 +442,7 @@ def process_mention_data(
             label = label[:len(context_tokens['mention_idxs'])]
             label_ids = sample["label_id"][:len(context_tokens['mention_idxs'])]
 
+        # todo: what is this for
         if candidate_token_ids is not None:
             token_ids = [[candidate_token_ids[label_id].tolist()] for label_id in label_ids]
             label_tokens = {
@@ -437,9 +456,11 @@ def process_mention_data(
             label_tokens = {
                 k: [label_tokens[l][k] for l in range(len(label_tokens))]
             for k in label_tokens[0]}
+            # label_tokens: {'tokens':list of all tokens, 'ids': list of all token ids, each [[1,2,3...]] s}
         else:
             label_tokens = None
 
+        # mwei todo: why checking type here?
         if isinstance(sample["label_id"], list):
             # multiple candidates
             if len(sample["label_id"]) > len(context_tokens['mention_idxs']):
@@ -484,10 +505,10 @@ def process_mention_data(
 
     context_vecs = torch.tensor(
         select_field(processed_samples, "context", "ids"), dtype=torch.long,
-    )
+    ) # token ids of context (text) tokens, padded to max_seq_length
     if logger:
         logger.info("Created context IDs vector")
-    if isinstance(processed_samples[0]["context"]["mention_idxs"][0], int):
+    if isinstance(processed_samples[0]["context"]["mention_idxs"][0], int): # mwei todo: only 1 mention?
         mention_idx_vecs = torch.tensor(
             select_field(processed_samples, "context", "mention_idxs"), dtype=torch.long,
         ).unsqueeze(1)
@@ -521,6 +542,7 @@ def process_mention_data(
             )
             # (bs, max_num_spans, 1, max_cand_length)
             cand_vecs = torch.tensor(cand_vecs, dtype=torch.long)
+            # (bs, max_num_spans)
             cand_mask = torch.tensor(cand_mask, dtype=torch.bool)
             assert (cand_mask == mention_idx_mask).all() or cand_mask.all()
             if logger:
@@ -548,10 +570,10 @@ def process_mention_data(
             logger.info("Created source vector")
     
     data = {
-        "context_vecs": context_vecs,
-        "mention_idx_vecs": mention_idx_vecs,
-        "cand_vecs": cand_vecs,
-        "label_idx": label_idx,
+        "context_vecs": context_vecs, # (bs, max_context_length), ids of context tokens
+        "mention_idx_vecs": mention_idx_vecs, # (bs, max_num_spans, 2), max_num_spans: max number of mentions in one sample
+        "cand_vecs": cand_vecs, # (bs, max_num_spans, 1, max_cand_length)
+        "label_idx": label_idx, # (bs, max_num_spans), wiki_ids
     }
 
     if use_world:
