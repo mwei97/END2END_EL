@@ -31,16 +31,24 @@ from pytorch_transformers.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 from pytorch_transformers.optimization import WarmupLinearSchedule
 from pytorch_transformers.tokenization_bert import BertTokenizer
 
-from elq.biencoder.biencoder import BiEncoderRanker
-from elq.vcg_utils.measures import entity_linking_tp_with_overlap
+#from elq.biencoder.biencoder import BiEncoderRanker
+#from elq.vcg_utils.measures import entity_linking_tp_with_overlap
+from biencoder import BiEncoderRanker
+from measures import entity_linking_tp_with_overlap
 import logging
 
-import elq.candidate_ranking.utils as utils
-from elq.biencoder.data_process import process_mention_data
-from blink.biencoder.zeshel_utils import DOC_PATH, WORLDS, world_to_id
-from blink.common.optimizer import get_bert_optimizer
-from elq.common.params import ElqParser
-from elq.index.faiss_indexer import DenseFlatIndexer, DenseHNSWFlatIndexer, DenseIVFFlatIndexer
+#import elq.candidate_ranking.utils as utils
+#from elq.biencoder.data_process import process_mention_data
+#from blink.biencoder.zeshel_utils import DOC_PATH, WORLDS, world_to_id
+#from blink.common.optimizer import get_bert_optimizer
+#from elq.common.params import ElqParser
+#from elq.index.faiss_indexer import DenseFlatIndexer, DenseHNSWFlatIndexer, DenseIVFFlatIndexer
+import candidate_ranking_utils as utils
+from data_process import process_mention_data
+from zeshel_utils import WORLDS, world_to_id
+from optimizer import get_bert_optimizer
+from params import ElqParser
+from faiss_indexer import DenseFlatIndexer, DenseHNSWFlatIndexer, DenseIVFFlatIndexer
 
 
 logger = None
@@ -72,10 +80,10 @@ def evaluate(
 
     for step, batch in enumerate(iter_):
         batch = tuple(t.to(device) for t in batch)
-        context_input = batch[0]	
+        context_input = batch[0]
         candidate_input = batch[1]
         # (bs, num_actual_spans)
-        label_ids = batch[2].cpu().numpy() if params["freeze_cand_enc"] else None
+        label_ids = batch[2].cpu().numpy() if params["freeze_cand_enc"] else None # todo: if train cand encoding, no label?
         if params["debug"] and label_ids is not None:
             label_ids[label_ids > 199] = 199
         mention_idx = batch[-2].cpu().numpy()
@@ -243,7 +251,9 @@ def main(params):
     if len(valid_samples) > 1024:
         valid_subset = 1024
     else:
-        valid_subset = len(valid_samples) - len(valid_samples) % torch.cuda.device_count()
+        valid_subset = len(valid_samples) - len(valid_samples) % 2
+    # else:
+    #     valid_subset = len(valid_samples) - len(valid_samples) % torch.cuda.device_count()
     logger.info("Read %d valid samples, choosing %d subset" % (len(valid_samples), valid_subset))
 
     valid_data, valid_tensor_data, extra_ret_values = process_mention_data(
@@ -260,7 +270,9 @@ def main(params):
         candidate_token_ids=None,
         params=params,
     )
-    candidate_token_ids = extra_ret_values["candidate_token_ids"]
+    # mwei todo: change here
+    #candidate_token_ids = extra_ret_values["candidate_token_ids"]
+    candidate_token_ids = extra_ret_values.get('candidate_token_ids')
     valid_tensor_data = TensorDataset(*valid_tensor_data)
     valid_sampler = SequentialSampler(valid_tensor_data)
     valid_dataloader = DataLoader(
@@ -283,11 +295,12 @@ def main(params):
         num_neighbors = 10
 
     # evaluate before training
-    results = evaluate(
-        reranker, valid_dataloader, params,
-        cand_encs=cand_encs, device=device,
-        logger=logger, faiss_index=cand_encs_index,
-    )
+    # todo: uncomment
+    # results = evaluate(
+    #     reranker, valid_dataloader, params,
+    #     cand_encs=cand_encs, device=device,
+    #     logger=logger, faiss_index=cand_encs_index,
+    # )
 
     number_of_samples_per_dataset = {}
 
@@ -317,7 +330,7 @@ def main(params):
             logger=logger,
             debug=params["debug"],
             add_mention_bounds=(not args.no_mention_bounds),
-            candidate_token_ids=candidate_token_ids,
+            candidate_token_ids=candidate_token_ids, # mwei todo: change here
             params=params,
         )
         logger.info("Finished preparing training data")
@@ -361,7 +374,7 @@ def main(params):
                 logger=logger,
                 debug=params["debug"],
                 add_mention_bounds=(not args.no_mention_bounds),
-                candidate_token_ids=candidate_token_ids,
+                candidate_token_ids=candidate_token_ids, # mwei todo: change here
                 params=params,
             )
             logger.info("Finished preparing training data for epoch {}: {} samples".format(epoch_idx, len(train_tensor_data_tuple[0])))
@@ -385,9 +398,9 @@ def main(params):
 
         for step, batch in enumerate(iter_):
             batch = tuple(t.to(device) for t in batch)
-            context_input = batch[0]	
+            context_input = batch[0]
             candidate_input = batch[1]
-            label_ids = batch[2] if params["freeze_cand_enc"] else None
+            label_ids = batch[2] if params["freeze_cand_enc"] else None # mwei todo: why?
             mention_idxs = batch[-2]
             mention_idx_mask = batch[-1]
             if params["debug"] and label_ids is not None:
@@ -399,7 +412,7 @@ def main(params):
             mention_logits = None
             mention_bounds = None
             hard_negs_mask = None
-            if params["adversarial_training"]:
+            if params["adversarial_training"]: # todo: change here in params
                 assert cand_encs is not None and label_ids is not None  # due to params["freeze_cand_enc"] being set
                 '''
                 GET CLOSEST N CANDIDATES (AND APPROPRIATE LABELS)
