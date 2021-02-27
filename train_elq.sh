@@ -152,7 +152,7 @@ then
     --mention_scoring_method ${mention_scoring_method} \
     --eval_interval 500 \
     --last_epoch ${epoch} \
-    ${all_mention_args} --data_parallel --get_losses --no_cuda ${distribute_train_samples_arg}"  #--debug  #
+    ${all_mention_args} --data_parallel --get_losses ${distribute_train_samples_arg}"  #--debug  #
   echo $cmd
   $cmd
 fi
