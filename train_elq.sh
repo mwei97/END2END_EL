@@ -142,7 +142,7 @@ then
     ${model_path_arg} ${cand_enc_args} \
     --title_key entity \
     --data_path ${data_path} \
-    --num_train_epochs 3 \
+    --num_train_epochs 2 \
     --learning_rate 0.00001 \
     --max_context_length ${context_length} \
     --max_cand_length 32 \
