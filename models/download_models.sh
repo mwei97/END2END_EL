@@ -9,3 +9,7 @@ fi
 if [[ ! -f faiss_hnsw_index.pkl ]]; then
     wget http://dl.fbaipublicfiles.com/elq/faiss_hnsw_index.pkl
 fi
+
+if [[ ! -f elq_wiki_large.bin ]]; then
+    wget http://dl.fbaipublicfiles.com/elq/elq_wiki_large.bin
+fi
