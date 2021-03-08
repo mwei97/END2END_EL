@@ -391,10 +391,10 @@ def process_mention_data(
         return data, tensor_data_tuple, extra_ret_values
 
     # mwei todo: check if this chunk is necessary
-    # if candidate_token_ids is None and not debug:
-    #     candidate_token_ids = torch.load(params["cand_token_ids_path"])
-    #     if logger: logger.info("Loaded saved entities info")
-    #     extra_ret_values["candidate_token_ids"] = candidate_token_ids
+    if candidate_token_ids is None and not debug:
+        candidate_token_ids = torch.load(params["cand_token_ids_path"])
+        if logger: logger.info("Loaded saved entities info")
+        extra_ret_values["candidate_token_ids"] = candidate_token_ids
 
     processed_samples = []
 

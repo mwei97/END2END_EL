@@ -271,8 +271,8 @@ def main(params):
         params=params,
     )
     # mwei todo: change here
-    #candidate_token_ids = extra_ret_values["candidate_token_ids"]
-    candidate_token_ids = extra_ret_values.get('candidate_token_ids')
+    candidate_token_ids = extra_ret_values["candidate_token_ids"]
+    #candidate_token_ids = extra_ret_values.get('candidate_token_ids')
     valid_tensor_data = TensorDataset(*valid_tensor_data)
     valid_sampler = SequentialSampler(valid_tensor_data)
     valid_dataloader = DataLoader(
