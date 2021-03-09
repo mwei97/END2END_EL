@@ -10,16 +10,17 @@ mention_agg_type=$2  # all_avg/fl_avg/fl_linear/fl_mlp/none/none_no_mentions
 objective=$3  # train/finetune/predict
 batch_size=$4  # 128 (for pretraining large model / 128 seqlen) / 32 (for finetuning w/ adversaries / 16 seqlen)
 context_length=$5  # 128/20 (smallest)
-load_saved_cand_encs=$6  # true/false
-adversarial=$7
-model_size=$8  # large/base/medium/small/mini/tiny
-mention_scoring_method=$9  # qa_linear/qa_mlp
-chunk_start=${10}
-chunk_end=${11}
-epoch=${12}
-eval_batch_size=${13}
-base_data=${14}  # if finetune
-base_epoch=${15}  # if finetune
+cand_length=$6
+load_saved_cand_encs=$7  # true/false
+adversarial=$8
+model_size=$9  # large/base/medium/small/mini/tiny
+mention_scoring_method=$10  # qa_linear/qa_mlp
+chunk_start=${11}
+chunk_end=${12}
+epoch=${13}
+eval_batch_size=${14}
+base_data=${15}  # if finetune
+base_epoch=${16}  # if finetune
 
 
 export PYTHONPATH=.
@@ -145,14 +146,14 @@ then
     --num_train_epochs 2 \
     --learning_rate 0.00001 \
     --max_context_length ${context_length} \
-    --max_cand_length 32 \
+    --max_cand_length ${cand_length} \
     --train_batch_size ${batch_size} \
     --eval_batch_size ${eval_batch_size} \
     --bert_model ${model_ckpt} \
     --mention_scoring_method ${mention_scoring_method} \
     --eval_interval 500 \
     --last_epoch ${epoch} \
-    ${all_mention_args} --data_parallel --get_losses ${distribute_train_samples_arg}"  #--debug  #
+    ${all_mention_args} --get_losses" #${distribute_train_samples_arg}"  #--debug  #
   echo $cmd
   $cmd
 fi
