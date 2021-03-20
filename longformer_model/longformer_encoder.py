@@ -45,10 +45,13 @@ class LongEncoderModule(nn.Module):
         global_attn_mask_ctxt
     ):
         longformer_outputs = self.ctxt_encoder(
-                token_idx_ctxt, attention_mask=mask_ctxt, global_attention_mask=global_attn_mask_ctxt
+            token_idx_ctxt, attention_mask=mask_ctxt, global_attention_mask=global_attn_mask_ctxt
         )
         # (bsz, max_context_length, longformer_output_dim)
-        raw_ctxt_encoding = longformer_outputs.last_hidden_state
+        try:
+            raw_ctxt_encoding = longformer_outputs.last_hidden_state
+        except:
+            raw_ctxt_encoding = longformer_output[0]
         return raw_ctxt_encoding
 
     def get_ctxt_logits_tags(
