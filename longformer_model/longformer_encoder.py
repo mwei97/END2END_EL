@@ -31,6 +31,7 @@ class LongEncoderModule(nn.Module):
         self.ctxt_encoder = LongformerModel.from_pretrained('allenai/longformer-base-4096')
         longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1) # todo: confirm this line works
         num_tags = 4 if not self.params['end_tag'] else 5
+        self.config = self.ctxt_encoder.config
         self.tagger = LongTagger(longformer_output_dim, num_tags, self.params['classifier'])
         # todo: mapping output dim
         self.linear_compression = None

@@ -55,8 +55,8 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
             else:
                 loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
 
-            tags = tags.cpu().numpy()
-            tags_pred = tags_pred.cpu().numpy()
+            tags = tags.cpu()#.numpy()
+            tags_pred = tags_pred.cpu()#.numpy()
             mask = tags.ne(pad_id)
 
             cor = (tags == tags_pred)[mask]
@@ -83,10 +83,11 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
 def main(params):
     model_output_path = params.get('output_path')
     if model_output_path is None:
-        data_path = params['data_path'].split('/')[0]
-        model_output_path = f'../experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}/'
+        data_path = params['data_path'].split('/')[-2]
+        model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}/'
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
+    print(model_output_path)
 
     # init model
     ranker = LongEncoderRanker(params)
@@ -137,9 +138,16 @@ def main(params):
         valid_tensor_data, sampler=valid_sampler, batch_size=eval_batch_size
     )
 
-    utils.write_to_file(
-        os.path.join(model_output_path, 'training_params.txt'), str(params)
-    )
+    # utils.write_to_file(
+    #     os.path.join(model_output_path, 'training_params.txt'), str(params)
+    # )
+
+    # todo: move after train
+    # epoch_output_folder_path = os.path.join(
+    #     model_output_path, f'epoch_{-1}'
+    # )
+    # utils.save_model(model, tokenizer, epoch_output_folder_path)
+    # print('Model saved')
 
     model.train()
 
@@ -180,11 +188,6 @@ def main(params):
             
             total += 1
             running_loss += loss.item()
-
-        epoch_output_folder_path = os.path.join(
-            model_output_path, f'epoch_{epoch}'
-        )
-        utils.save_model(model, tokenizer, epoch_output_folder_path)
 
         #if (epoch+1)%3==0:
         res = evaluate(ranker, valid_dataloader, params, device)
