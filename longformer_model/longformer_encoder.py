@@ -70,15 +70,16 @@ class LongEncoderModule(nn.Module):
     def get_ctxt_embeds(
         self,
         raw_ctxt_encoding,
-        pred_tags
+        tags
     ):
         """
             Get embeddings of B tags
+            tags could be pred tags or golden tags
             If self.linear_compression, match embeddings to candidate entity embeds dimension 
         """
         b_tag = 2
         # (bsz, max_context_length)
-        mask = (pred_tags==b_tag)
+        mask = (tags==b_tag)
         # (num_pred_b_tags, longformer_output_dim)
         ctxt_embeds = raw_ctxt_encoding[mask]
         if self.linear_compression is not None:
@@ -91,7 +92,9 @@ class LongEncoderModule(nn.Module):
         token_idx_ctxt,
         mask_ctxt,
         global_attn_mask_ctxt,
-        is_biencoder = False
+        is_biencoder=False,
+        use_golden_tags=False,
+        golden_tags=None
     ):
         """"""
         raw_ctxt_encoding = self.get_raw_ctxt_encoding(token_idx_ctxt, mask_ctxt, global_attn_mask_ctxt)
@@ -101,7 +104,13 @@ class LongEncoderModule(nn.Module):
             'ctxt_tags': ctxt_tags
         }
         if is_biencoder:
-            ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, ctxt_tags)
+            # use golden tags to get context embeddings
+            if use_golden_tags:
+                assert golden_tags is not None
+                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, golden_tags)
+            # use pred tags to get context embeddings
+            else:
+                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, ctxt_tags)
             ctxt_outs['ctxt_embeds'] = ctxt_embeds
         return ctxt_outs
 
@@ -114,6 +123,7 @@ class LongEncoderRanker(nn.Module):
         self.n_gpu = torch.cuda.device_count() # todo
         self.num_tags = 4 if not self.params['end_tag'] else 5
         self.is_biencoder = params['is_biencoder']
+        self.use_golden_tags = not params['not_use_golden_tags']
         # init tokenizer
         self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
         self.pad_id = 0
@@ -139,17 +149,18 @@ class LongEncoderRanker(nn.Module):
     # # todo
     def score_candidate(
         self,
-        ctxt_embeds,
         golden_cand_enc,
-        golden_cand_mask
+        golden_cand_mask,
+        ctxt_embeds,
+        golden_tags=None
     ):
         # (num_golden_entities, cand_emb_dim)
         golden_cand_enc = golden_cand_enc[golden_cand_mask]
         # (num_pred_b_tags, num_golden_entities)
         scores = ctxt_embeds.mm(golden_cand_enc.t())
 
-        # todo: modify loss when pred tag > golden & pred tag < golden
         loss_function = nn.CrossEntropyLoss(reduction='mean')
+        # todo: modify loss when pred tag > golden & pred tag < golden
         if scores.size(0)<scores.size(1):
             target = torch.LongTensor(torch.arange(scores.size(0))).to(self.device)
             cand_loss = loss_function(scores, target)
@@ -171,7 +182,12 @@ class LongEncoderRanker(nn.Module):
         golden_cand_enc=None,
         golden_cand_mask=None
     ):
-        ctxt_outs = self.model(token_idx_ctxt, mask_ctxt, global_attn_mask_ctxt, is_biencoder=self.is_biencoder)
+        ctxt_outs = self.model(
+            token_idx_ctxt, mask_ctxt, global_attn_mask_ctxt,
+            is_biencoder=self.is_biencoder,
+            use_golden_tags=self.use_golden_tags,
+            golden_tags=golden_tags
+        )
         ctxt_tags = ctxt_outs['ctxt_tags']
         ctxt_logits = ctxt_outs['ctxt_logits']
         loss = self.score_tagger(ctxt_logits, golden_tags)

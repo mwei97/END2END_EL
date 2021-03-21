@@ -36,6 +36,8 @@ class Parser(argparse.ArgumentParser):
             '--is_biencoder', default=False, action='store_true'
         )
         parser.add_argument(
+            '--not_use_golden_tags', default=False, action='store_true')
+        parser.add_argument(
             '--max_context_length',
             default=512,
             type=int
