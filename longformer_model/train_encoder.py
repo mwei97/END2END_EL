@@ -109,28 +109,31 @@ def main(params):
         train_samples = train_samples[:100]
         valid_samples = valid_samples[:50]
 
+    cand_enc_path = os.path.join(params['data_path'], 'train_enc.json')
     train_tensor_data = process_mention_data(
         train_samples,
         tokenizer,
         max_context_length=params['max_context_length'],
         silent=params['silent'],
         end_tag=params['end_tag'],
-        is_biencoder=params['is_biencoder']
+        is_biencoder=params['is_biencoder'],
+        cand_enc_path=cand_enc_path
     )
-
     train_tensor_data = TensorDataset(*train_tensor_data)
     train_sampler = SequentialSampler(train_tensor_data)
     train_dataloader = DataLoader(
         train_tensor_data, sampler=train_sampler, batch_size=train_batch_size
     )
 
+    cand_enc_path = os.path.join(params['data_path'], 'dev_enc.json')
     valid_tensor_data = process_mention_data(
         valid_samples,
         tokenizer,
         max_context_length=params['max_context_length'],
         silent=params['silent'],
         end_tag=params['end_tag'],
-        is_biencoder=params['is_biencoder']
+        is_biencoder=params['is_biencoder'],
+        cand_enc_path=cand_enc_path
     )
     valid_tensor_data = TensorDataset(*valid_tensor_data)
     valid_sampler = SequentialSampler(valid_tensor_data)

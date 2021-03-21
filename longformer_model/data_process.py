@@ -158,7 +158,8 @@ def process_mention_data(
     max_context_length=512,
     silent=False,
     end_tag=False,
-    is_biencoder=False
+    is_biencoder=False,
+    cand_enc_path=None
 ):
     processed_samples = []
     if silent:
@@ -166,9 +167,14 @@ def process_mention_data(
     else:
         iter_ = tqdm(samples)
 
+    if is_biencoder:
+        assert cand_enc_path is not None
+        with open(cand_enc_path) as f:
+            golden_cand_enc = json.load(f)
+
     for idx, sample in enumerate(iter_):
         # if no mentions in the document, skip
-        if len(sample["mentions"])==0:
+        if len(sample['mentions'])==0:
             continue
 
         context_tokens = get_context_representation_multiple_mentions(
@@ -184,8 +190,11 @@ def process_mention_data(
 
         # todo: delete/modify later
         if is_biencoder:
+            sample_id = sample['id']
             num_mentions = len(context_tokens['mention_idxs'])
-            cand_enc = np.random.randn(num_mentions, 1024)
+            cand_enc = np.array(golden_cand_enc[sample_id][:num_mentions])
+            #assert len(cand_enc)==num_mentions
+            #cand_enc = np.random.randn(num_mentions, 1024)
             context_tokens['cand_enc'] = cand_enc
 
         processed_samples.append(context_tokens)
@@ -196,7 +205,8 @@ def process_mention_data(
     mask_vecs = torch.tensor(select_field(processed_samples, 'attention_mask'), dtype=torch.bool)#.to(device)
     global_attn_mask_vecs = torch.tensor(select_field(processed_samples, 'global_attention_mask'), dtype=torch.bool)#.to(device)
     if is_biencoder:
-        cand_enc_vecs, cand_enc_mask = select_field_with_padding(processed_samples, 'cand_enc', pad_idx=np.zeros(1024))
+        cand_enc_vecs, cand_enc_mask = select_field_with_padding(processed_samples, 'cand_enc', pad_idx=np.zeros(1024)) # todo: dim as variable?
+        # (num_samples, max_num_mentions, cand_enc_dim)
         cand_enc_vecs = torch.tensor(cand_enc_vecs, dtype=torch.float)
         cand_enc_mask = torch.tensor(cand_enc_mask, dtype=torch.bool)
         return (context_vecs, ner_tag_vecs, cand_enc_vecs, cand_enc_mask, mask_vecs, global_attn_mask_vecs)

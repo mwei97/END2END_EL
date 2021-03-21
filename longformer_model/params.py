@@ -25,7 +25,7 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--cand_emb_dim',
-            default=784,
+            default=1024,
             type=int
         )
         parser.add_argument(
