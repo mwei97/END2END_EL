@@ -51,7 +51,7 @@ class LongEncoderModule(nn.Module):
         try:
             raw_ctxt_encoding = longformer_outputs.last_hidden_state
         except:
-            raw_ctxt_encoding = longformer_output[0]
+            raw_ctxt_encoding = longformer_outputs[0]
         return raw_ctxt_encoding
 
     def get_ctxt_logits_tags(
