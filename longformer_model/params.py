@@ -30,7 +30,8 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--learning_rate',
-            default=1e-3
+            default=1e-3,
+            type=float
         )
         parser.add_argument(
             '--is_biencoder', default=False, action='store_true'
