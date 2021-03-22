@@ -72,10 +72,10 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
                 true_positive_end += (mask * tags.eq(end_id) * tags_pred.eq(end_id)).float().sum().item()
                 total_positive_end += (mask * tags.eq(end_id)).float().sum().item()
             
-            if end_tag:
-                res = (correct/total, predicted_positive_start, true_positive_start, total_positive_start, predicted_positive_end, true_positive_end, total_positive_end)
-            else:
-                res = (correct/total, predicted_positive_start, true_positive_start, total_positive_start)
+    if end_tag:
+        res = (correct/total, predicted_positive_start, true_positive_start, total_positive_start, predicted_positive_end, true_positive_end, total_positive_end)
+    else:
+        res = (correct/total, predicted_positive_start, true_positive_start, total_positive_start)
 
     return res
 
@@ -195,12 +195,16 @@ def main(params):
             res = evaluate(ranker, valid_dataloader, params, device)
             print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
             print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
+            model.train()
         # save model
         epoch_output_folder_path = os.path.join(
             model_output_path, f'epoch_{epoch}'
         )
         utils.save_state_dict(model, optim, epoch_output_folder_path)
-        model.train()
+
+    res = evaluate(ranker, valid_dataloader, params, device)
+    print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
+    print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
 
 if __name__ == '__main__':
     parser = Parser()
