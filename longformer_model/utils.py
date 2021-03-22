@@ -20,3 +20,9 @@ def save_model(model, tokenizer, output_dir):
     torch.save(model_to_save.state_dict(), output_model_file)
     model_to_save.config.to_json_file(output_config_file)
     tokenizer.save_vocabulary(output_dir)
+
+def save_state_dict(model, optimizer, output_dir):
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+    }, output_dir)

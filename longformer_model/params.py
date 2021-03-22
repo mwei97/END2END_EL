@@ -59,7 +59,7 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--data_path',
-            default='END2END_EL/data/AIDA-YAGO2-en_desc-NEW/tokenized',
+            default='END2END_EL/data/AIDA-YAGO2-wiki_content-NEW/tokenized',
             type=str
         )
         parser.add_argument(

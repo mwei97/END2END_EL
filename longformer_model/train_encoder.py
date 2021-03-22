@@ -84,7 +84,7 @@ def main(params):
     model_output_path = params.get('output_path')
     if model_output_path is None:
         data_path = params['data_path'].split('/')[-2]
-        model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}/'
+        model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}/'
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
     print(model_output_path)
@@ -141,16 +141,15 @@ def main(params):
         valid_tensor_data, sampler=valid_sampler, batch_size=eval_batch_size
     )
 
-    # utils.write_to_file(
-    #     os.path.join(model_output_path, 'training_params.txt'), str(params)
-    # )
+    utils.write_to_file(
+        os.path.join(model_output_path, 'training_params.txt'), str(params)
+    )
 
     # todo: move after train
     # epoch_output_folder_path = os.path.join(
     #     model_output_path, f'epoch_{-1}'
     # )
     # utils.save_model(model, tokenizer, epoch_output_folder_path)
-    # print('Model saved')
 
     model.train()
 
@@ -168,7 +167,7 @@ def main(params):
             iter_ = tqdm(train_dataloader)
 
         for batch in iter_:
-            #model.zero_grad()
+            model.zero_grad()
 
             batch = tuple(t.to(device) for t in batch)
             
@@ -192,9 +191,15 @@ def main(params):
             total += 1
             running_loss += loss.item()
 
-        #if (epoch+1)%3==0:
-        res = evaluate(ranker, valid_dataloader, params, device)
-        print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
+        if epoch%3==0:
+            res = evaluate(ranker, valid_dataloader, params, device)
+            print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
+            print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[2]}')
+        # save model
+        epoch_output_folder_path = os.path.join(
+            model_output_path, f'epoch_{epoch}'
+        )
+        utils.save_state_dict(model, optim, epoch_output_folder_path)
         model.train()
 
 if __name__ == '__main__':
