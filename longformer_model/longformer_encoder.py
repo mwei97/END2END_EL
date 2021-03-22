@@ -80,10 +80,10 @@ class LongEncoderModule(nn.Module):
         b_tag = 2
         # (bsz, max_context_length)
         mask = (tags==b_tag)
-        # (num_pred_b_tags, longformer_output_dim)
+        # (num_b_tags, longformer_output_dim)
         ctxt_embeds = raw_ctxt_encoding[mask]
         if self.linear_compression is not None:
-            # (num_pred_b_tags, cand_emb_dim)
+            # (num_b_tags, cand_emb_dim)
             ctxt_embeds = self.linear_compression(ctxt_embeds)
         return ctxt_embeds
 
@@ -161,15 +161,15 @@ class LongEncoderRanker(nn.Module):
 
         loss_function = nn.CrossEntropyLoss(reduction='mean')
         # todo: modify loss when pred tag > golden & pred tag < golden
-        if scores.size(0)<scores.size(1):
+        if scores.size(0)==scores.size(1):
+            target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
+            cand_loss = loss_function(scores, target)
+        elif scores.size(0)<scores.size(1):
             target = torch.LongTensor(torch.arange(scores.size(0))).to(self.device)
             cand_loss = loss_function(scores, target)
-        elif scores.size(0)>scores.size(1):
-            target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
-            cand_loss = loss_function(scores[:scores.size(1)], target)
         else:
             target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
-            cand_loss = loss_function(scores, target)
+            cand_loss = loss_function(scores[:scores.size(1)], target)
 
         return cand_loss, scores
 
@@ -194,7 +194,7 @@ class LongEncoderRanker(nn.Module):
         # todo: add condidate loss
         if self.is_biencoder:
             ctxt_embeds = ctxt_outs['ctxt_embeds']
-            cand_loss, _ = self.score_candidate(ctxt_embeds, golden_cand_enc, golden_cand_mask)
+            cand_loss, _ = self.score_candidate(golden_cand_enc, golden_cand_mask, ctxt_embeds, golden_tags)
             loss += cand_loss
 
         return loss, ctxt_tags, ctxt_logits

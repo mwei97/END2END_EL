@@ -197,9 +197,10 @@ def main(params):
             print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
             model.train()
         # save model
-        epoch_output_folder_path = os.path.join(
-            model_output_path, f'epoch_{epoch}'
-        )
+        # epoch_output_folder_path = os.path.join(
+        #     model_output_path, f'epoch_{epoch}'
+        # )
+        epoch_output_folder_path = os.path.join(model_output_path, 'last_epoch')
         utils.save_state_dict(model, optim, epoch_output_folder_path)
 
     res = evaluate(ranker, valid_dataloader, params, device)
