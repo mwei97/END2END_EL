@@ -194,7 +194,7 @@ def main(params):
         if epoch%3==0:
             res = evaluate(ranker, valid_dataloader, params, device)
             print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
-            print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[2]}')
+            print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
         # save model
         epoch_output_folder_path = os.path.join(
             model_output_path, f'epoch_{epoch}'
