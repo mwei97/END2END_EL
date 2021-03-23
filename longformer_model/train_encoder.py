@@ -89,7 +89,7 @@ def main(params):
         model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}/'
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
-    print(model_output_path)
+    print('Model saved to: ', model_output_path)
 
     # init model
     ranker = LongEncoderRanker(params)
@@ -98,12 +98,19 @@ def main(params):
 
     device = ranker.device
 
+    # todo: optimizer
+    optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
+    checkpoint = params.get('checkpoint', None)
+    if checkpoint is not None:
+        optim.load_state_dict(checkpoint['optimizer_state_dict'])
+    epochs = params['epochs']
+
+    # prepare data
     train_batch_size = params['train_batch_size']
     eval_batch_size = params['eval_batch_size']
 
-    # load train_data
+    # load train and validate data
     train_samples = read_dataset(params['data_path'], 'train')
-    # load valid data
     valid_samples = read_dataset(params['data_path'], 'dev')
 
     # todo: delete later
@@ -148,10 +155,6 @@ def main(params):
     )
 
     model.train()
-
-    # todo: optimizer
-    optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
-    epochs = params['epochs']
 
     for epoch in range(epochs):
         total = 0

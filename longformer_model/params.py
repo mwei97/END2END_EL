@@ -67,3 +67,7 @@ class Parser(argparse.ArgumentParser):
             '--output_path',
             type=str,
             required=False)
+        parser.add_argument(
+            '--checkpoint',
+            type=str,
+            required=False)
