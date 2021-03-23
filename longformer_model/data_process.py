@@ -120,19 +120,25 @@ def get_context_representation_multiple_mentions(
 
 def get_ner_tag(
     context_tokens, max_context_length, end_tag=False,
-    token_key='tokens', mention_key='mention_idxs'
+    token_key='tokens', mention_key='mention_idxs',
+    pad_id=-1
 ):
     """
     Given context tokens, return NER tags with global attention mask (all B/I tokens have global attention)
     """
     tokens = context_tokens[token_key]
     mention_idxs = context_tokens[mention_key] # inclusive bounds
-    # 1: O, 2: B, 3: I, 0: mask/padding
-    ner_tags = [1]*len(tokens) # initialize to be not entity (O)
+    ## 1: O, 2: B, 3: I, 0: padding
+    # 0: O, 1: B, 2: I, -1: padding
+    #ner_tags = [1]*len(tokens) # initialize to be not entity (O)
+    ner_tags = [0]*len(tokens) # initialize to be not entity(O)
     global_attention_mask = [0]*len(tokens) # initialize to local attention
-    b_tag = 2
-    i_tag = 3
-    e_tag = 4 if end_tag else 3
+    # b_tag = 2
+    # i_tag = 3
+    # e_tag = 4 if end_tag else 3
+    b_tag = 1
+    i_tag = 2
+    e_tag = 3 if end_tag else 2
     for mention_idx in mention_idxs:
         b = mention_idx[0]
         e = mention_idx[1]
@@ -146,9 +152,10 @@ def get_ner_tag(
         # elif e>s:
         #     ner_tags[b+1:e] = [i_tag]*(e-(b+1))
         #     ner_tags[e] = e_tag
-    paddings = [0] * (max_context_length - len(tokens))
-    ner_tags += paddings
-    global_attention_mask += paddings
+    tag_paddings = [pad_id] * (max_context_length - len(tokens))
+    ner_tags += tag_paddings
+    attn_paddings = [0] * (max_context_length - len(tokens))
+    global_attention_mask += attn_paddings
 
     return ner_tags, global_attention_mask
 

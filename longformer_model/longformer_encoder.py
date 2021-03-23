@@ -30,10 +30,10 @@ class LongEncoderModule(nn.Module):
         self.params = params
         self.ctxt_encoder = LongformerModel.from_pretrained('allenai/longformer-base-4096')
         longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1) # todo: confirm this line works
-        num_tags = 4 if not self.params['end_tag'] else 5
+        #num_tags = 4 if not self.params['end_tag'] else 5
+        num_tags = 3 if not self.params['end_tag'] else 4
         self.config = self.ctxt_encoder.config
         self.tagger = LongTagger(longformer_output_dim, num_tags, self.params['classifier'])
-        # todo: mapping output dim
         self.linear_compression = None
         if longformer_output_dim != self.params['cand_emb_dim']:
             self.linear_compression = nn.Linear(longformer_output_dim, self.params['cand_emb_dim'])
@@ -77,7 +77,8 @@ class LongEncoderModule(nn.Module):
             tags could be pred tags or golden tags
             If self.linear_compression, match embeddings to candidate entity embeds dimension 
         """
-        b_tag = 2
+        #b_tag = 2
+        b_tag = 1
         # (bsz, max_context_length)
         mask = (tags==b_tag)
         # (num_b_tags, longformer_output_dim)
@@ -121,12 +122,14 @@ class LongEncoderRanker(nn.Module):
         self.params = params
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_gpu = torch.cuda.device_count() # todo
-        self.num_tags = 4 if not self.params['end_tag'] else 5
+        #self.num_tags = 4 if not self.params['end_tag'] else 5
+        self.num_tags = 3 if not self.params['end_tag'] else 4
         self.is_biencoder = params['is_biencoder']
         self.use_golden_tags = not params['not_use_golden_tags']
         # init tokenizer
         self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
-        self.pad_id = 0
+        #self.pad_id = 0
+        self.pad_id = -1
         # init model
         self.model = LongEncoderModule(self.params)
         self.model = self.model.to(self.device)
@@ -135,13 +138,13 @@ class LongEncoderRanker(nn.Module):
         # if self.data_parallel:
         #     self.model = nn.DataParallel(self.model)
 
+    # todo: add mask
     def score_tagger(
         self,
         ctxt_logits,
         golden_tags
     ):
         loss_function = nn.CrossEntropyLoss(reduction='mean', ignore_index=self.pad_id)
-        # todo: confirm logits.view(-1, num_tag) = torch.argmax()
         tag_loss = loss_function(ctxt_logits.view(-1,self.num_tags), golden_tags.view(-1))
 
         return tag_loss
@@ -191,7 +194,6 @@ class LongEncoderRanker(nn.Module):
         ctxt_tags = ctxt_outs['ctxt_tags']
         ctxt_logits = ctxt_outs['ctxt_logits']
         loss = self.score_tagger(ctxt_logits, golden_tags)
-        # todo: add condidate loss
         if self.is_biencoder:
             ctxt_embeds = ctxt_outs['ctxt_embeds']
             cand_loss, _ = self.score_candidate(golden_cand_enc, golden_cand_mask, ctxt_embeds, golden_tags)

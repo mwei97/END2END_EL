@@ -14,7 +14,8 @@ from data_process import read_dataset, process_mention_data
 from params import Parser
 import utils
 
-def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
+#def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
+def evaluate(ranker, valid_dataloader, params, device, pad_id=-1, start_id=1):
     ranker.model.eval()
 
     if params['silent']:
@@ -28,14 +29,15 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
     true_positive_start = 0
     predicted_positive_start = 0
     total_positive_start = 0
-    start_id = 2
+    #start_id = 2
 
     end_tag = params['end_tag']
     if end_tag:
         true_positive_end = 0
         predicted_positive_end = 0
         total_positive_end = 0
-        end_id = 4
+        #end_id = 4
+        end_id = 3
 
     for batch in iter_:
         batch = tuple(t.to(device) for t in batch)
@@ -144,12 +146,6 @@ def main(params):
     utils.write_to_file(
         os.path.join(model_output_path, 'training_params.txt'), str(params)
     )
-
-    # todo: move after train
-    # epoch_output_folder_path = os.path.join(
-    #     model_output_path, f'epoch_{-1}'
-    # )
-    # utils.save_model(model, tokenizer, epoch_output_folder_path)
 
     model.train()
 
