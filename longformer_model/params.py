@@ -68,6 +68,6 @@ class Parser(argparse.ArgumentParser):
             type=str,
             required=False)
         parser.add_argument(
-            '--checkpoint',
+            '--model_path',
             type=str,
             required=False)
