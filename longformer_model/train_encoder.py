@@ -17,7 +17,7 @@ import utils
 def f1_score(true_pos, pred_pos, total_pos, epsilon=1e-7):
     precision = true_pos/(pred_pos+epsilon)
     recall = true_pos/(total_pos+epsilon)
-    F1 = 2./(1./precision+1./recall)
+    F1 = 2./(1./precision+1./recall+epsilon)
     return precision, recall, F1
 
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
