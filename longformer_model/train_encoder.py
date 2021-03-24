@@ -17,7 +17,8 @@ import utils
 def f1_score(true_pos, pred_pos, total_pos, epsilon=1e-7):
     precision = true_pos/(pred_pos+epsilon)
     recall = true_pos/(total_pos+epsilon)
-    F1 = 2./(1./precision+1./recall+epsilon)
+    #F1 = 2./(1./precision+1./recall+epsilon)
+    F1 = 2*(precision*recall) / (precision+recall+epsilon)
     return precision, recall, F1
 
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
@@ -205,7 +206,7 @@ def main(params):
             res = evaluate(ranker, valid_dataloader, params, device)
             print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res["acc"]:.4f}')
             metrics = res['start_tag']
-            print(f'Start tag metrics: precision {metrics[0]}, recall {metrics[1]}, F1 {metrics[2]}')
+            print(f'Start tag metrics: precision {metrics[0]:.4f}, recall {metrics[1]:.4f}, F1 {metrics[2]:.4f}')
             print(f'Pred start: {metrics[3]}, True start: {metrics[4]}, Total start: {metrics[5]}')
             model.train()
         # save model
