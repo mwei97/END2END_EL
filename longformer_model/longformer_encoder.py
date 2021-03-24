@@ -70,17 +70,19 @@ class LongEncoderModule(nn.Module):
     def get_ctxt_embeds(
         self,
         raw_ctxt_encoding,
-        tags
+        tags,
+        golden_tags=None
     ):
         """
             Get embeddings of B tags
             tags could be pred tags or golden tags
             If self.linear_compression, match embeddings to candidate entity embeds dimension 
         """
-        #b_tag = 2
-        b_tag = 1
+        b_tag = 1 #2
         # (bsz, max_context_length)
         mask = (tags==b_tag)
+        if torch.sum(mask).cpu().item()==0: # no pred b tag
+            mask = (tags==golden_tags)
         # (num_b_tags, longformer_output_dim)
         ctxt_embeds = raw_ctxt_encoding[mask]
         if self.linear_compression is not None:
@@ -111,7 +113,7 @@ class LongEncoderModule(nn.Module):
                 ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, golden_tags)
             # use pred tags to get context embeddings
             else:
-                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, ctxt_tags)
+                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, ctxt_tags, golden_tags) # if pred no B tags, use golden_tags
             ctxt_outs['ctxt_embeds'] = ctxt_embeds
         return ctxt_outs
 
@@ -159,26 +161,51 @@ class LongEncoderRanker(nn.Module):
         golden_cand_enc,
         golden_cand_mask,
         ctxt_embeds,
-        golden_tags=None
+        use_golden_tags=True,
+        golden_tags=None,
+        pred_tags=None
     ):
-        # (num_golden_entities, cand_emb_dim)
-        golden_cand_enc = golden_cand_enc[golden_cand_mask]
-        # (num_pred_b_tags, num_golden_entities)
-        scores = ctxt_embeds.mm(golden_cand_enc.t())
-
         loss_function = nn.CrossEntropyLoss(reduction='mean')
-        # todo: modify loss when pred tag > golden & pred tag < golden
-        if scores.size(0)==scores.size(1):
-            target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
-            cand_loss = loss_function(scores, target)
-        elif scores.size(0)<scores.size(1):
-            target = torch.LongTensor(torch.arange(scores.size(0))).to(self.device)
-            cand_loss = loss_function(scores, target)
-        else:
-            target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
-            cand_loss = loss_function(scores[:scores.size(1)], target)
 
+        if use_golden_tags:
+            # (num_golden_entities, cand_emb_dim)
+            golden_cand_enc = golden_cand_enc[golden_cand_mask]
+            # (num_b_tags, num_golden_entities)
+            scores = ctxt_embeds.mm(golden_cand_enc.t())
+        else:
+            cand_enc = torch.zeros(ctxt_embeds.size()).to(self.device)
+            golden_cand_enc = golden_cand_enc[golden_cand_mask]
+            golden_tags = golden_tags.view(-1)
+            pred_tags = pred_tags.view(-1)
+
+            enc_order = 0
+            golden_enc_order = 0
+            for i in range(golden_tags.size(0)):
+                if pred_tags[i]==1:
+                    if golden_tags[i]==1:
+                        cand_enc[enc_order] = golden_cand_enc[golden_enc_order]
+                        golden_enc_order += 1
+                    enc_order += 1
+                elif golden_tags[i]==1:
+                    golden_enc_order += 1
+                else:
+                    continue
+            scores = ctxt_embeds.mm(cand_enc.t())
+
+        target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
+        cand_loss = loss_function(scores, target)
         return cand_loss, scores
+
+            # # todo: modify loss when pred tag > golden & pred tag < golden
+            # if scores.size(0)==scores.size(1):
+            #     target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
+            #     cand_loss = loss_function(scores, target)
+            # elif scores.size(0)<scores.size(1):
+            #     target = torch.LongTensor(torch.arange(scores.size(0))).to(self.device)
+            #     cand_loss = loss_function(scores, target)
+            # else:
+            #     target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
+            #     cand_loss = loss_function(scores[:scores.size(1)], target)
 
     def forward(
         self,
@@ -200,7 +227,12 @@ class LongEncoderRanker(nn.Module):
         loss = self.score_tagger(ctxt_logits, golden_tags)
         if self.is_biencoder:
             ctxt_embeds = ctxt_outs['ctxt_embeds']
-            cand_loss, _ = self.score_candidate(golden_cand_enc, golden_cand_mask, ctxt_embeds, golden_tags)
+            cand_loss, _ = self.score_candidate(
+                golden_cand_enc, golden_cand_mask, ctxt_embeds,
+                use_golden_tags=self.use_golden_tags,
+                golden_tags=golden_tags,
+                pred_tags=ctxt_tags
+            )
             loss += cand_loss
 
         return loss, ctxt_tags, ctxt_logits

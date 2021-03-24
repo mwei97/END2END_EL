@@ -14,6 +14,12 @@ from data_process import read_dataset, process_mention_data
 from params import Parser
 import utils
 
+def f1_score(true_pos, pred_pos, total_pos, epsilon=1e-7):
+    precision = true_pos/(pred_pos+epsilon)
+    recall = true_pos/(total_pos+epsilon)
+    F1 = 2./(1./precision+1./recall)
+    return precision, recall, F1
+
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
 def evaluate(ranker, valid_dataloader, params, device, pad_id=-1, start_id=1):
     ranker.model.eval()
@@ -68,16 +74,20 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1, start_id=1):
             predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
             true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
             total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
+            precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
             
             if end_tag:
                 predicted_positive_end += (mask * tags_pred.eq(end_id)).float().sum().item()
                 true_positive_end += (mask * tags.eq(end_id) * tags_pred.eq(end_id)).float().sum().item()
                 total_positive_end += (mask * tags.eq(end_id)).float().sum().item()
+                precision_end, recall_end, f1_end = f1_score(true_positive_end, predicted_positive_end, total_positive_end)
             
+    res = {
+        'acc': correct/total,
+        'start_tag': [precision_start, recall_start, f1_start, predicted_positive_start, true_positive_start, total_positive_start],
+    }
     if end_tag:
-        res = (correct/total, predicted_positive_start, true_positive_start, total_positive_start, predicted_positive_end, true_positive_end, total_positive_end)
-    else:
-        res = (correct/total, predicted_positive_start, true_positive_start, total_positive_start)
+        res['end_tag'] = [precision_end, recall_end, f1_end, predicted_positive_end, true_positive_end, total_positive_end]
 
     return res
 
@@ -191,10 +201,12 @@ def main(params):
             total += 1
             running_loss += loss.item()
 
-        if epoch%3==0:
+        if epoch%3==0 or epoch==(epochs-1):
             res = evaluate(ranker, valid_dataloader, params, device)
-            print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
-            print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
+            print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res['acc']:.4f}')
+            metrics = res['start_tag']
+            print(f'Start tag metrics: precision {metrics[0]}, recall {metrics[1]}, F1 {metrics[2]}')
+            print(f'Pred start: {metrics[3]}, True start: {metrics[4]}, Total start: {metrics[5]}')
             model.train()
         # save model
         # epoch_output_folder_path = os.path.join(
@@ -203,9 +215,9 @@ def main(params):
         epoch_output_folder_path = os.path.join(model_output_path, 'last_epoch')
         utils.save_state_dict(model, optim, epoch_output_folder_path)
 
-    res = evaluate(ranker, valid_dataloader, params, device)
-    print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
-    print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
+    # res = evaluate(ranker, valid_dataloader, params, device)
+    # print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
+    # print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
 
 if __name__ == '__main__':
     parser = Parser()
