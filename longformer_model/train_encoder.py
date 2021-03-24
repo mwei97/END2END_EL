@@ -203,7 +203,7 @@ def main(params):
 
         if epoch%3==0 or epoch==(epochs-1):
             res = evaluate(ranker, valid_dataloader, params, device)
-            print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res['acc']:.4f}')
+            print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res["acc"]:.4f}')
             metrics = res['start_tag']
             print(f'Start tag metrics: precision {metrics[0]}, recall {metrics[1]}, F1 {metrics[2]}')
             print(f'Pred start: {metrics[3]}, True start: {metrics[4]}, Total start: {metrics[5]}')
