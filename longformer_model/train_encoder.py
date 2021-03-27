@@ -97,7 +97,8 @@ def main(params):
     model_output_path = params.get('output_path')
     if model_output_path is None:
         data_path = params['data_path'].split('/')[-2]
-        model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}/'
+        #model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}/'
+        model_output_path = f'experiments/{data_path}/{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}_{params["classifier"]}/'
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
     print('Model saved to: ', model_output_path)
