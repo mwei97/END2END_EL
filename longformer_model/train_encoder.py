@@ -179,7 +179,7 @@ def main(params):
             iter_ = tqdm(train_dataloader)
 
         for batch in iter_:
-            model.zero_grad()
+            #model.zero_grad()
 
             batch = tuple(t.to(device) for t in batch)
             
@@ -196,20 +196,24 @@ def main(params):
                 loss, _, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
             
             # Perform backpropagation
-            (loss/token_ids.size(1)).backward()
+            #(loss/token_ids.size(1)).backward()
+            loss.backward()
             
-            optim.step()
+            #optim.step()
             
             total += 1
             running_loss += loss.item()
 
-        if epoch%3==0 or epoch==(epochs-1):
-            res = evaluate(ranker, valid_dataloader, params, device)
-            print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res["acc"]:.4f}')
-            metrics = res['start_tag']
-            print(f'Start tag metrics: precision {metrics[0]:.4f}, recall {metrics[1]:.4f}, F1 {metrics[2]:.4f}')
-            print(f'Pred start: {metrics[3]}, True start: {metrics[4]}, Total start: {metrics[5]}')
-            model.train()
+        optim.step()
+        optim.zero_grad()
+
+        #if epoch%3==0 or epoch==(epochs-1):
+        res = evaluate(ranker, valid_dataloader, params, device)
+        print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res["acc"]:.4f}')
+        metrics = res['start_tag']
+        print(f'Start tag metrics: precision {metrics[0]:.4f}, recall {metrics[1]:.4f}, F1 {metrics[2]:.4f}')
+        print(f'Pred start: {metrics[3]}, True start: {metrics[4]}, Total start: {metrics[5]}')
+        model.train()
         # save model
         # epoch_output_folder_path = os.path.join(
         #     model_output_path, f'epoch_{epoch}'
