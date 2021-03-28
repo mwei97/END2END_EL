@@ -11,12 +11,17 @@ class Parser(argparse.ArgumentParser):
             '--silent', default=False, action='store_true'
         )
         parser.add_argument(
-            '--end_tag', default=False, action='store_true'
-        )
-        parser.add_argument(
             '--debug',
             default=False,
             action='store_true'
+        )
+        parser.add_argument(
+            '--b_tag',
+            default=1,
+            type=int
+        )
+        parser.add_argument(
+            '--end_tag', default=False, action='store_true'
         )
         parser.add_argument(
             '--classifier',

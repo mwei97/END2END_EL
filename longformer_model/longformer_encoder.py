@@ -71,14 +71,15 @@ class LongEncoderModule(nn.Module):
         self,
         raw_ctxt_encoding,
         tags,
-        golden_tags=None
+        golden_tags=None,
+        b_tag=1
     ):
         """
             Get embeddings of B tags
             tags could be pred tags or golden tags
             If self.linear_compression, match embeddings to candidate entity embeds dimension 
         """
-        b_tag = 1 #2
+        #b_tag = 1 #2
         # (bsz, max_context_length)
         mask = (tags==b_tag)
         if torch.sum(mask).cpu().item()==0: # no pred b tag
@@ -97,7 +98,8 @@ class LongEncoderModule(nn.Module):
         global_attn_mask_ctxt,
         is_biencoder=False,
         use_golden_tags=False,
-        golden_tags=None
+        golden_tags=None,
+        b_tag=1
     ):
         """"""
         raw_ctxt_encoding = self.get_raw_ctxt_encoding(token_idx_ctxt, mask_ctxt, global_attn_mask_ctxt)
@@ -110,10 +112,10 @@ class LongEncoderModule(nn.Module):
             # use golden tags to get context embeddings
             if use_golden_tags:
                 assert golden_tags is not None
-                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, golden_tags)
+                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, golden_tags, b_tag=b_tag)
             # use pred tags to get context embeddings
             else:
-                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, ctxt_tags, golden_tags) # if pred no B tags, use golden_tags
+                ctxt_embeds = self.get_ctxt_embeds(raw_ctxt_encoding, ctxt_tags, golden_tags=golden_tags, b_tag=b_tag) # if pred no B tags, use golden_tags
             ctxt_outs['ctxt_embeds'] = ctxt_embeds
         return ctxt_outs
 
@@ -213,6 +215,7 @@ class LongEncoderRanker(nn.Module):
         mask_ctxt,
         global_attn_mask_ctxt,
         golden_tags,
+        b_tag=1,
         golden_cand_enc=None,
         golden_cand_mask=None
     ):
@@ -220,7 +223,7 @@ class LongEncoderRanker(nn.Module):
             token_idx_ctxt, mask_ctxt, global_attn_mask_ctxt,
             is_biencoder=self.is_biencoder,
             use_golden_tags=self.use_golden_tags,
-            golden_tags=golden_tags
+            golden_tags=golden_tags, b_tag=b_tag
         )
         ctxt_tags = ctxt_outs['ctxt_tags']
         ctxt_logits = ctxt_outs['ctxt_logits']

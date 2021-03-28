@@ -117,6 +117,7 @@ def main(params):
         checkpoint = torch.load(model_path)
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
     epochs = params['epochs']
+    b_tag = params['b_tag']
 
     # prepare data
     train_batch_size = params['train_batch_size']
@@ -188,12 +189,16 @@ def main(params):
             tags = batch[1]
             attn_mask = batch[-2]
             global_attn_mask = batch[-1]
+            cand_enc = cand_enc_mask = None
             if params['is_biencoder']:
                 cand_enc = batch[2]
                 cand_enc_mask = batch[3]
-                loss, _, _ = ranker(token_ids, attn_mask, global_attn_mask, tags, cand_enc, cand_enc_mask)
-            else:
-                loss, _, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
+            loss, _, _ = ranker(
+                token_ids, attn_mask, global_attn_mask, tags, 
+                b_tag=b_tag,
+                golden_cand_enc=cand_enc,
+                golden_cand_mask=cand_enc_mask
+            )
             
             # Perform backpropagation
             #(loss/token_ids.size(1)).backward()
