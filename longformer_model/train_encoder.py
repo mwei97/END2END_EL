@@ -22,7 +22,7 @@ def f1_score(true_pos, pred_pos, total_pos, epsilon=1e-7):
     return precision, recall, F1
 
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
-def evaluate(ranker, valid_dataloader, params, device, pad_id=-1, start_id=1):
+def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
     ranker.model.eval()
 
     if params['silent']:
@@ -36,6 +36,7 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1, start_id=1):
     true_positive_start = 0
     predicted_positive_start = 0
     total_positive_start = 0
+    start_id = params['b_tag']
     #start_id = 2
 
     end_tag = params['end_tag']
