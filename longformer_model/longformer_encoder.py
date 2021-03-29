@@ -132,8 +132,8 @@ class LongEncoderRanker(nn.Module):
         self.is_biencoder = params['is_biencoder']
         self.use_golden_tags = not params['not_use_golden_tags']
         # init tokenizer
-        #self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
+        #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
         #self.pad_id = 0
         self.pad_id = -1
         # init model
