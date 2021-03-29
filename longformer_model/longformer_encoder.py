@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import LongformerModel, LongformerTokenizer
+from pytorch_transformers.tokenization_bert import BertTokenizer
 
 class LongTagger(nn.Module):
     def __init__(self, longformer_output_dim, num_tags, classifier='linear'):
@@ -131,7 +132,8 @@ class LongEncoderRanker(nn.Module):
         self.is_biencoder = params['is_biencoder']
         self.use_golden_tags = not params['not_use_golden_tags']
         # init tokenizer
-        self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
+        #self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
         #self.pad_id = 0
         self.pad_id = -1
         # init model
