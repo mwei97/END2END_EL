@@ -99,7 +99,8 @@ class LongEncoderModule(nn.Module):
         # (bsz, max_context_length)
         mask = (tags==b_tag)
         if torch.sum(mask).cpu().item()==0: # no pred b tag
-            mask = (tags==golden_tags)
+            #mask = (tags==golden_tags)
+            mask = (golden_tags==b_tag)
         # (num_b_tags, longformer_output_dim)
         ctxt_embeds = raw_ctxt_encoding[mask]
         if self.linear_compression is not None:
