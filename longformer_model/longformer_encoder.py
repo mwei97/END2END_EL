@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 from transformers import LongformerModel, LongformerTokenizer
-from pytorch_transformers.tokenization_bert import BertTokenizer
+from transformers import BertModel, BertTokenizer
+#from pytorch_transformers.modeling_bert import BertModel
+#from pytorch_transformers.tokenization_bert import BertTokenizer
 
 class LongTagger(nn.Module):
     def __init__(self, longformer_output_dim, num_tags, classifier='linear'):
@@ -29,8 +31,14 @@ class LongEncoderModule(nn.Module):
     def __init__(self, params):
         super(LongEncoderModule, self).__init__()
         self.params = params
-        self.ctxt_encoder = LongformerModel.from_pretrained('allenai/longformer-base-4096')
-        longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1) # todo: confirm this line works
+        if params['use_longformer']:
+            self.ctxt_encoder = LongformerModel.from_pretrained('allenai/longformer-base-4096')
+            longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1)
+            self.NULL_IDX = 0
+        else:
+            self.ctxt_encoder = BertModel.from_pretrained('bert-base-uncased')
+            self.NULL_IDX = 0
+            longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1)
         #num_tags = 4 if not self.params['end_tag'] else 5
         num_tags = 3 if not self.params['end_tag'] else 4
         self.config = self.ctxt_encoder.config
@@ -45,9 +53,16 @@ class LongEncoderModule(nn.Module):
         mask_ctxt,
         global_attn_mask_ctxt
     ):
-        longformer_outputs = self.ctxt_encoder(
-            token_idx_ctxt, attention_mask=mask_ctxt, global_attention_mask=global_attn_mask_ctxt
-        )
+        if self.params['use_longformer']:
+            longformer_outputs = self.ctxt_encoder(
+                token_idx_ctxt, attention_mask=mask_ctxt, global_attention_mask=global_attn_mask_ctxt
+            )
+        else:
+            #token_idx_ctxt, segment_idx_ctxt, _ = to_bert_input(token_idx_ctxt, self.NULL_IDX)
+            segment_idx_ctxt = token_idx_ctxt*0
+            longformer_outputs = self.ctxt_encoder(
+                input_ids=token_idx_ctxt, attention_mask=mask_ctxt, token_type_ids=segment_idx_ctxt, 
+            )
         # (bsz, max_context_length, longformer_output_dim)
         try:
             raw_ctxt_encoding = longformer_outputs.last_hidden_state
@@ -132,8 +147,10 @@ class LongEncoderRanker(nn.Module):
         self.is_biencoder = params['is_biencoder']
         self.use_golden_tags = not params['not_use_golden_tags']
         # init tokenizer
-        self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
-        #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        if params['use_longformer']:
+            self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
+        else:
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         #self.pad_id = 0
         self.pad_id = -1
         # init model
@@ -242,12 +259,10 @@ class LongEncoderRanker(nn.Module):
 
         return loss, ctxt_tags, ctxt_logits
 
-
-
-
-
-
-
-
-
+# def to_bert_input(token_idx, null_idx):
+#     segment_idx = token_idx * 0
+#     mask = token_idx != null_idx
+#     # nullify elements in case self.NULL_IDX was not 0
+#     token_idx = token_idx * mask.long()
+#     return token_idx, segment_idx, mask
 

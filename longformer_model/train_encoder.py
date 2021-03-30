@@ -95,11 +95,14 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
 
 
 def main(params):
+    train_batch_size = params['train_batch_size']
+    eval_batch_size = params['eval_batch_size']
     model_output_path = params.get('output_path')
     if model_output_path is None:
         data_path = params['data_path'].split('/')[-2]
         #model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}/'
-        model_output_path = f'experiments/{data_path}/{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}_{params["classifier"]}/'
+        model_used = 'long' if params['use_longformer'] else 'bert'
+        model_output_path = f'experiments/{data_path}/{train_batch_size}_{eval_batch_size}_{model_used}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}_{params["classifier"]}/'
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
     print('Model saved to: ', model_output_path)
@@ -121,9 +124,6 @@ def main(params):
     b_tag = params['b_tag']
 
     # prepare data
-    train_batch_size = params['train_batch_size']
-    eval_batch_size = params['eval_batch_size']
-
     # load train and validate data
     train_samples = read_dataset(params['data_path'], 'train')
     valid_samples = read_dataset(params['data_path'], 'dev')
@@ -141,7 +141,8 @@ def main(params):
         silent=params['silent'],
         end_tag=params['end_tag'],
         is_biencoder=params['is_biencoder'],
-        cand_enc_path=cand_enc_path
+        cand_enc_path=cand_enc_path,
+        use_longformer=params['use_longformer']
     )
     train_tensor_data = TensorDataset(*train_tensor_data)
     train_sampler = SequentialSampler(train_tensor_data)
@@ -157,7 +158,8 @@ def main(params):
         silent=params['silent'],
         end_tag=params['end_tag'],
         is_biencoder=params['is_biencoder'],
-        cand_enc_path=cand_enc_path
+        cand_enc_path=cand_enc_path,
+        use_longformer=params['use_longformer']
     )
     valid_tensor_data = TensorDataset(*valid_tensor_data)
     valid_sampler = SequentialSampler(valid_tensor_data)

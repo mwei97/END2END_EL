@@ -39,6 +39,11 @@ class Parser(argparse.ArgumentParser):
             type=float
         )
         parser.add_argument(
+            '--use_longformer', 
+            default=True,
+            type=bool
+        )
+        parser.add_argument(
             '--is_biencoder', default=False, action='store_true'
         )
         parser.add_argument(

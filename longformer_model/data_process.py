@@ -45,18 +45,23 @@ def select_field_with_padding(data, key1, key2=None, pad_idx=-1):
 
 def get_context_representation_multiple_mentions(
     sample, tokenizer, max_context_length,
-    input_key='tokenized_text_ids', mention_key='tokenized_mention_idxs'
+    input_key='tokenized_text_ids', mention_key='tokenized_mention_idxs',
+    use_longformer=True
 ):
     mention_idxs = sample[mention_key]
     input_ids = sample[input_key]
 
     all_mention_spans_range = [mention_idxs[0][0], mention_idxs[-1][1]]
-    while all_mention_spans_range[1] - all_mention_spans_range[0] > max_context_length:
+    max_seq_length = max_context_length if use_longformer else max_context_length-2
+    #while all_mention_spans_range[1] - all_mention_spans_range[0] > max_context_length:
+    while all_mention_spans_range[1] - all_mention_spans_range[0] > max_seq_length:
         if len(mention_idxs) == 1:
             # don't cut further
-            assert mention_idxs[0][1] - mention_idxs[0][0] > max_context_length
+            #assert mention_idxs[0][1] - mention_idxs[0][0] > max_context_length
+            assert mention_idxs[0][1] - mention_idxs[0][0] > max_seq_length
             # truncate mention
-            mention_idxs[0][1] = max_context_length + mention_idxs[0][0]
+            #mention_idxs[0][1] = max_context_length + mention_idxs[0][0]
+            mention_idxs[0][1] = max_seq_length + mention_idxs[0][0]
         else:
             # cut last mention
             mention_idxs = mention_idxs[:len(mention_idxs) - 1]
@@ -67,7 +72,11 @@ def get_context_representation_multiple_mentions(
     context_right = input_ids[all_mention_spans_range[1]:]
     
     left_quota = (max_context_length - len(all_mention_tokens)) // 2
+    if not use_longformer:
+        left_quota -= 1
     right_quota = max_context_length - len(all_mention_tokens) - left_quota
+    if not use_longformer:
+        right_quota -= 2
     left_add = len(context_left)
     right_add = len(context_right)
     
@@ -84,7 +93,8 @@ def get_context_representation_multiple_mentions(
         right_quota = 0  # cut entire list (context_right = [])
     input_ids_window = context_left[-left_quota:] + all_mention_tokens + context_right[:right_quota]
     
-    if len(input_ids) <= max_context_length:
+    #if len(input_ids) <= max_context_length:
+    if len(input_ids) <= max_seq_length:
         try:
             # if length of original input_ids is sufficient to fit in max_seq_length, then none of the above
             # opeartions should be done
@@ -102,6 +112,9 @@ def get_context_representation_multiple_mentions(
                     mention_idxs[c][0] - cut_from_left, mention_idxs[c][1] - cut_from_left,
                 ]
     
+    if not use_longformer:
+        # add [CLS] and [SEP] to the start and end respectively
+        input_ids_window = [101] + input_ids_window + [102]
     tokens = tokenizer.convert_ids_to_tokens(input_ids_window)
 
     attention_mask = [1]*len(input_ids_window)
@@ -110,6 +123,10 @@ def get_context_representation_multiple_mentions(
     input_ids_window += padding
     attention_mask += padding
     assert len(input_ids_window) == max_context_length
+
+    if not use_longformer:
+        # +1 for CLS token
+        mention_idxs = [[mention[0]+1, mention[1]+1] for mention in mention_idxs]
     
     return {
         'tokens':tokens,
@@ -166,7 +183,8 @@ def process_mention_data(
     silent=False,
     end_tag=False,
     is_biencoder=False,
-    cand_enc_path=None
+    cand_enc_path=None,
+    use_longformer=True
 ):
     processed_samples = []
     if silent:
@@ -185,7 +203,7 @@ def process_mention_data(
             continue
 
         context_tokens = get_context_representation_multiple_mentions(
-            sample, tokenizer, max_context_length
+            sample, tokenizer, max_context_length, use_longformer=use_longformer
         )
 
         for i in range(len(context_tokens["mention_idxs"])):
