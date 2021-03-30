@@ -212,8 +212,14 @@ def main(params):
             total += 1
             running_loss += loss.item()
 
-        optim.step()
-        optim.zero_grad()
+            torch.nn.utils.clip_grad_norm(
+                model.parameters(), params['max_grad_norm']
+            )
+            optim.step()
+            optim.zero_grad()
+
+        # optim.step()
+        # optim.zero_grad()
 
         #if epoch%3==0 or epoch==(epochs-1):
         res = evaluate(ranker, valid_dataloader, params, device)

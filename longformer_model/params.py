@@ -38,10 +38,11 @@ class Parser(argparse.ArgumentParser):
             default=1e-3,
             type=float
         )
+        parser.add_argument('--max_grad_norm', default=1.0, type=float)
         parser.add_argument(
             '--use_longformer', 
-            default=True,
-            type=bool
+            default=False,
+            action='store_true'
         )
         parser.add_argument(
             '--is_biencoder', default=False, action='store_true'
