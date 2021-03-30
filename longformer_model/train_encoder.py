@@ -61,7 +61,10 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
 
         with torch.no_grad():
             if params['is_biencoder']:
-                loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags, cand_enc, cand_enc_mask)
+                loss, tags_pred, _ = ranker(
+                    token_ids, attn_mask, global_attn_mask, tags, b_tag=start_id,
+                    golden_cand_enc=cand_enc, golden_cand_mask=cand_enc_mask
+                )
             else:
                 loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
 
