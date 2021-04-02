@@ -178,8 +178,8 @@ def load_and_prepare_data(tokenizer, train_batch_size, eval_batch_size, max_len=
     val_inputs = torch.tensor(dev.input_ids)
     tr_tags = torch.tensor(train.tags)
     val_tags = torch.tensor(dev.tags)
-    tr_masks = torch.tensor(train.attn_masks)
-    val_masks = torch.tensor(dev.attn_masks)
+    tr_masks = torch.tensor(train.attn_masks, dtype=torch.bool)
+    val_masks = torch.tensor(dev.attn_masks, dtype=torch.bool)
 
     train_data = TensorDataset(tr_inputs, tr_masks, tr_tags)
     train_sampler = RandomSampler(train_data)

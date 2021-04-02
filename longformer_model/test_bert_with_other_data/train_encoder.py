@@ -45,7 +45,7 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
 
             tags = tags.cpu()#.numpy()
             tags_pred = tags_pred.cpu()#.numpy()
-            mask = attn_mask
+            mask = attn_mask.cpu()
 
             cor = (tags == tags_pred)[mask]
             correct += cor.float().sum().item()
@@ -87,7 +87,7 @@ def main(params):
     optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
     model_path = params.get('model_path', None)
     if model_path is not None:
-        checkpoint = torch.load(model_path)
+        checkpoint = torch.load(model_path+'last_epoch')
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
     epochs = params['epochs']
     #b_tag = params['b_tag']

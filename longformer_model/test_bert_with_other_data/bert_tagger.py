@@ -3,7 +3,7 @@ import torch.nn as nn
 from transformers import BertModel, BertTokenizer
 
 class BertTagger(nn.Module):
-    def __init__(self, ouput_dim, num_tags):
+    def __init__(self, output_dim, num_tags):
         super(BertTagger, self).__init__()
         self.classifier = nn.Linear(output_dim, num_tags)
 
@@ -88,7 +88,7 @@ class BertEncoderRanker(nn.Module):
         self.model = BertEncoderModule(self.params)
         model_path = params.get('model_path', None)
         if model_path is not None:
-            checkpoint = torch.load(model_path)
+            checkpoint = torch.load(model_path+'last_epoch')
             self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model = self.model.to(self.device)
 
