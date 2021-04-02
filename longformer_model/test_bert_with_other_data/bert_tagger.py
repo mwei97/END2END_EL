@@ -73,7 +73,7 @@ class BertEncoderModule(nn.Module):
 
 class BertEncoderRanker(nn.Module):
     def __init__(self, params):
-        super(LongEncoderRanker, self).__init__()
+        super(BertEncoderRanker, self).__init__()
         self.params = params
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_gpu = torch.cuda.device_count()
