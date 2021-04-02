@@ -72,6 +72,7 @@ def main():
     pad_tok, sep_tok, cls_tok, o_lab = get_special_tokens(tokenizer, tag2idx)
 
     epochs = 5
+    epoch = 0
 
     for _ in trange(epochs, desc="Epoch"):
         epoch += 1
@@ -115,7 +116,7 @@ def main():
 
             tr_logits = tr_logits.detach().cpu().numpy()
             tr_label_ids = torch.masked_select(b_labels, (preds_mask == 1))
-            tr_batch_preds = np.argmax(tr_logits[preds_mask.squeeze()], axis=1)
+            tr_batch_preds = np.argmax(tr_logits[preds_mask.squeeze().cpu()], axis=1)
             tr_batch_labels = tr_label_ids.cpu().numpy()
             tr_preds.extend(tr_batch_preds)
             tr_labels.extend(tr_batch_labels)
@@ -172,7 +173,7 @@ def main():
 
             logits = logits.detach().cpu().numpy()
             label_ids = torch.masked_select(b_labels, (preds_mask == 1))
-            val_batch_preds = np.argmax(logits[preds_mask.squeeze()], axis=1)
+            val_batch_preds = np.argmax(logits[preds_mask.squeeze().cpu()], axis=1)
             val_batch_labels = label_ids.cpu().numpy()
             predictions.extend(val_batch_preds)
             true_labels.extend(val_batch_labels)
