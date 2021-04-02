@@ -198,3 +198,6 @@ def main():
         print(f"Validation Accuracy: {eval_accuracy}")
         #print(f"Classification Report:\n {cl_report}")
         print(f"Confusion Matrix:\n {conf_mat}")
+
+if __name__ == '__main__':
+        main()
