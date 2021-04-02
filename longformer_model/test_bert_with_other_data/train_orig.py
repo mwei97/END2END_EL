@@ -84,7 +84,7 @@ def main():
         nb_tr_examples, nb_tr_steps = 0, 0
         tr_preds, tr_labels = [], []
 
-        for step, batch in enumerate(train_dataloader):
+        for step, batch in tqdm(enumerate(train_dataloader)):
 
             # Add batch to gpu
             batch = tuple(t.to(device) for t in batch)

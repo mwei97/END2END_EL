@@ -51,7 +51,7 @@ class Parser(argparse.ArgumentParser):
             '--not_use_golden_tags', default=False, action='store_true')
         parser.add_argument(
             '--max_context_length',
-            default=512,
+            default=75,
             type=int
         )
         parser.add_argument(

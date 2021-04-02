@@ -43,18 +43,18 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
         with torch.no_grad():
             loss, tags_pred, _ = ranker(token_ids, attn_mask, tags)
 
-            tags = tags.cpu()#.numpy()
-            tags_pred = tags_pred.cpu()#.numpy()
-            mask = attn_mask.cpu()
+        tags = tags.cpu()#.numpy()
+        tags_pred = tags_pred.cpu()#.numpy()
+        mask = attn_mask.cpu()
 
-            cor = (tags == tags_pred)[mask]
-            correct += cor.float().sum().item()
-            total += mask.float().sum().item()
-            
-            predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
-            true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
-            total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
-            precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
+        cor = (tags == tags_pred)[mask]
+        correct += cor.float().sum().item()
+        total += mask.float().sum().item()
+        
+        predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
+        true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
+        total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
+        precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
             
     res = {
         'acc': correct/total,
