@@ -54,7 +54,8 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
         predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
         true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
         total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
-        precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
+    
+    precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
             
     res = {
         'acc': correct/total,
@@ -131,7 +132,7 @@ def main(params):
             total += 1
             running_loss += loss.item()
 
-            torch.nn.utils.clip_grad_norm(
+            torch.nn.utils.clip_grad_norm_(
                 model.parameters(), params['max_grad_norm']
             )
             optim.step()

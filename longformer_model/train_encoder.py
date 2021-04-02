@@ -68,30 +68,30 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
             else:
                 loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
 
-            tags = tags.cpu()#.numpy()
-            tags_pred = tags_pred.cpu()#.numpy()
-            mask = tags.ne(pad_id)
+        tags = tags.cpu()#.numpy()
+        tags_pred = tags_pred.cpu()#.numpy()
+        mask = tags.ne(pad_id)
 
-            cor = (tags == tags_pred)[mask]
-            correct += cor.float().sum().item()
-            total += mask.float().sum().item()
+        cor = (tags == tags_pred)[mask]
+        correct += cor.float().sum().item()
+        total += mask.float().sum().item()
+        
+        predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
+        true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
+        total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
+        
+        if end_tag:
+            predicted_positive_end += (mask * tags_pred.eq(end_id)).float().sum().item()
+            true_positive_end += (mask * tags.eq(end_id) * tags_pred.eq(end_id)).float().sum().item()
+            total_positive_end += (mask * tags.eq(end_id)).float().sum().item()
             
-            predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
-            true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
-            total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
-            precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
-            
-            if end_tag:
-                predicted_positive_end += (mask * tags_pred.eq(end_id)).float().sum().item()
-                true_positive_end += (mask * tags.eq(end_id) * tags_pred.eq(end_id)).float().sum().item()
-                total_positive_end += (mask * tags.eq(end_id)).float().sum().item()
-                precision_end, recall_end, f1_end = f1_score(true_positive_end, predicted_positive_end, total_positive_end)
-            
+    precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
     res = {
         'acc': correct/total,
         'start_tag': [precision_start, recall_start, f1_start, predicted_positive_start, true_positive_start, total_positive_start],
     }
     if end_tag:
+        precision_end, recall_end, f1_end = f1_score(true_positive_end, predicted_positive_end, total_positive_end)
         res['end_tag'] = [precision_end, recall_end, f1_end, predicted_positive_end, true_positive_end, total_positive_end]
 
     return res
