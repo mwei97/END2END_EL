@@ -200,4 +200,4 @@ def main():
         print(f"Confusion Matrix:\n {conf_mat}")
 
 if __name__ == '__main__':
-        main()
+    main()
