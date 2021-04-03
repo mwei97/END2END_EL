@@ -35,7 +35,7 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--learning_rate',
-            default=1e-3,
+            default=3e-5,
             type=float
         )
         parser.add_argument('--max_grad_norm', default=1.0, type=float)

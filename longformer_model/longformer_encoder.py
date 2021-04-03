@@ -158,7 +158,7 @@ class LongEncoderRanker(nn.Module):
         self.model = LongEncoderModule(self.params)
         model_path = params.get('model_path', None)
         if model_path is not None:
-            checkpoint = torch.load(model_path)
+            checkpoint = torch.load(model_path+'last_epoch')
             self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model = self.model.to(self.device)
         # # set model parallel

@@ -8,21 +8,26 @@ import io
 from tqdm import tqdm, trange
 from transformers import LongformerModel, LongformerTokenizer
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 from longformer_encoder import LongEncoderRanker
 from data_process import read_dataset, process_mention_data
 from params import Parser
 import utils
 
-def f1_score(true_pos, pred_pos, total_pos, epsilon=1e-7):
-    precision = true_pos/(pred_pos+epsilon)
-    recall = true_pos/(total_pos+epsilon)
-    #F1 = 2./(1./precision+1./recall+epsilon)
-    F1 = 2*(precision*recall) / (precision+recall+epsilon)
-    return precision, recall, F1
+def get_metrics_result(y_true, y_pred, b_tag):
+    acc = accuracy_score(y_true, y_pred)
+    precision_b = precision_score(y_true, y_pred, labels=[b_tag], average='micro')
+    recall_b = recall_score(y_true, y_pred, labels=[b_tag], average='micro')
+    f1_b = f1_score(y_true, y_pred, labels=[b_tag], average='micro')
+    f1_macro = f1_score(y_true, y_pred, average='macro')
+    f1_micro = f1_score(y_true, y_pred, average='micro')
+
+    return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
 
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
-def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
+#def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
+def evaluate(ranker, valid_dataloader, params, device):
     ranker.model.eval()
 
     if params['silent']:
@@ -30,23 +35,10 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
     else:
         iter_ = tqdm(valid_dataloader)
 
-    correct = 0
-    total = 0
-
-    true_positive_start = 0
-    predicted_positive_start = 0
-    total_positive_start = 0
-    start_id = params['b_tag']
-    #start_id = 2
-
-    end_tag = params['end_tag']
-    if end_tag:
-        true_positive_end = 0
-        predicted_positive_end = 0
-        total_positive_end = 0
-        #end_id = 4
-        end_id = 3
-
+    b_tag = params['b_tag']
+    y_true = []
+    y_pred = []
+    
     for batch in iter_:
         batch = tuple(t.to(device) for t in batch)
 
@@ -68,33 +60,13 @@ def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
             else:
                 loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
 
-        tags = tags.cpu()#.numpy()
-        tags_pred = tags_pred.cpu()#.numpy()
-        mask = tags.ne(pad_id)
+        y_true.extend(tags[attn_mask].cpu().tolist())
+        y_pred.extend(tags_pred[attn_mask].cpu().tolist())
+        assert len(y_true)==len(y_pred)
 
-        cor = (tags == tags_pred)[mask]
-        correct += cor.float().sum().item()
-        total += mask.float().sum().item()
-        
-        predicted_positive_start += (mask * tags_pred.eq(start_id)).float().sum().item()
-        true_positive_start += (mask * tags.eq(start_id) * tags_pred.eq(start_id)).float().sum().item()
-        total_positive_start += (mask * tags.eq(start_id)).float().sum().item()
-        
-        if end_tag:
-            predicted_positive_end += (mask * tags_pred.eq(end_id)).float().sum().item()
-            true_positive_end += (mask * tags.eq(end_id) * tags_pred.eq(end_id)).float().sum().item()
-            total_positive_end += (mask * tags.eq(end_id)).float().sum().item()
-            
-    precision_start, recall_start, f1_start = f1_score(true_positive_start, predicted_positive_start, total_positive_start)
-    res = {
-        'acc': correct/total,
-        'start_tag': [precision_start, recall_start, f1_start, predicted_positive_start, true_positive_start, total_positive_start],
-    }
-    if end_tag:
-        precision_end, recall_end, f1_end = f1_score(true_positive_end, predicted_positive_end, total_positive_end)
-        res['end_tag'] = [precision_end, recall_end, f1_end, predicted_positive_end, true_positive_end, total_positive_end]
+    acc, precision_b, recall_b, f1_b, f1_macro, f1_micro = get_metrics_result(y_true, y_pred, b_tag)
 
-    return res
+    return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
 
 
 def main(params):
@@ -121,7 +93,7 @@ def main(params):
     optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
     model_path = params.get('model_path', None)
     if model_path is not None:
-        checkpoint = torch.load(model_path)
+        checkpoint = torch.load(model_path+'last_epoch')
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
     epochs = params['epochs']
     b_tag = params['b_tag']
@@ -215,7 +187,7 @@ def main(params):
             total += 1
             running_loss += loss.item()
 
-            torch.nn.utils.clip_grad_norm(
+            torch.nn.utils.clip_grad_norm_(
                 model.parameters(), params['max_grad_norm']
             )
             optim.step()
@@ -223,24 +195,19 @@ def main(params):
 
         # optim.step()
         # optim.zero_grad()
+        acc, precision_b, recall_b, f1_b, f1_macro, f1_micro
 
         #if epoch%3==0 or epoch==(epochs-1):
         res = evaluate(ranker, valid_dataloader, params, device)
-        print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res["acc"]:.4f}')
-        metrics = res['start_tag']
-        print(f'Start tag metrics: precision {metrics[0]:.4f}, recall {metrics[1]:.4f}, F1 {metrics[2]:.4f}')
-        print(f'Pred start: {metrics[3]}, True start: {metrics[4]}, Total start: {metrics[5]}')
+        print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f}')
+        print(f'Validation accuracy: {res[0]:.4f}')
+        print(f'Start tag metrics: precision {res[1]:.4f}, recall {res[2]:.4f}, F1 {res[3]:.4f}')
+        print(f'F1 macro: {res[4]:.4f}, F1 micro: {res[5]:.4f}')
+
         model.train()
-        # save model
-        # epoch_output_folder_path = os.path.join(
-        #     model_output_path, f'epoch_{epoch}'
-        # )
+
         epoch_output_folder_path = os.path.join(model_output_path, 'last_epoch')
         utils.save_state_dict(model, optim, epoch_output_folder_path)
-
-    # res = evaluate(ranker, valid_dataloader, params, device)
-    # print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f} Validation acc: {res[0]:.4f}')
-    # print(f'Pred start: {res[1]}, True start: {res[2]}, Total start: {res[3]}')
 
 if __name__ == '__main__':
     parser = Parser()
