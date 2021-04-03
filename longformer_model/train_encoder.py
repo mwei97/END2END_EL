@@ -195,7 +195,6 @@ def main(params):
 
         # optim.step()
         # optim.zero_grad()
-        acc, precision_b, recall_b, f1_b, f1_macro, f1_micro
 
         #if epoch%3==0 or epoch==(epochs-1):
         res = evaluate(ranker, valid_dataloader, params, device)
