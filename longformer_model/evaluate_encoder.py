@@ -34,18 +34,21 @@ def ner_eval(ranker, valid_dataloader, params, device):
     acc, precision, recall, f1, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, pos_tag)
 
     # print result
-    print(f'Test accuracy: {res[0]:.4f}, F1 macro: {res[4]:.4f}, F1 micro: {res[5]:.4f}')
-    print(f'Tag to investigate is {pos_tag}, metrics: precision {res[1]:.4f}, recall {res[2]:.4f}, F1 {res[3]:.4f}')
+    print(f'Test accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
+    print(f'Tag to investigate is {pos_tag}, metrics: precision {precision:.4f}, recall {recall:.4f}, F1 {f1:.4f}')
 
 
-def in_batch_el_eval():
+#def in_batch_el_eval():
 
-def kb_el_eval():
+#def kb_el_eval():
 
 
 
 def main(params):
     assert params['model_path'] is not None
+    model_path = params['model_path']
+
+    params['is_biencoder'] = False
 
     # load model
     ranker = LongEncoderRanker(params)
@@ -53,7 +56,9 @@ def main(params):
     model = ranker.model
     # load optimizer
     optim = torch.optim.Adam(model.parameters(), lr = params['learning_rate'])
-    model_name = params.get('model_name', 'last_epoch')
+    model_name = params.get('model_name')
+    if model_name is None:
+        model_name = 'last_epoch'
     checkpoint = torch.load(model_path+model_name)
     optim.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -85,7 +90,7 @@ def main(params):
 
     if params['ner_eval']:
         print('-----Start evaluating NER task-----')
-        ner_eval() # todo: add arguments
+        ner_eval(ranker, valid_dataloader, params, device)
 
     if params['in_batch_el_eval']:
         print('-----Start evaluating EL task in batch-----')

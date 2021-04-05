@@ -174,6 +174,7 @@ class EvalParser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--model_name',
+            default='last_epoch',
             type=str,
             required=False
         )
