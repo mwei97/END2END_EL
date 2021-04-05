@@ -95,6 +95,11 @@ class Parser(argparse.ArgumentParser):
             type=str,
             required=False
         )
+        parser.add_argument(
+            '--conll',
+            default=False,
+            action='store_true'
+        )
 
 class EvalParser(argparse.ArgumentParser):
     def __init__(self):

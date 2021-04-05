@@ -171,7 +171,8 @@ class LongEncoderRanker(nn.Module):
         ctxt_logits,
         golden_tags
     ):
-        loss_function = nn.CrossEntropyLoss(reduction='mean', ignore_index=self.pad_id)
+        #loss_function = nn.CrossEntropyLoss(reduction='mean', ignore_index=self.pad_id)
+        loss_function = nn.CrossEntropyLoss(reduction='mean')
         tag_loss = loss_function(ctxt_logits.view(-1,self.num_tags), golden_tags.view(-1))
 
         return tag_loss
@@ -246,7 +247,7 @@ class LongEncoderRanker(nn.Module):
         )
         ctxt_tags = ctxt_outs['ctxt_tags']
         ctxt_logits = ctxt_outs['ctxt_logits']
-        loss = self.score_tagger(ctxt_logits, golden_tags)
+        loss = self.score_tagger(ctxt_logits[mask_ctxt], golden_tags[mask_ctxt])
         if self.is_biencoder:
             ctxt_embeds = ctxt_outs['ctxt_embeds']
             cand_loss, _ = self.score_candidate(

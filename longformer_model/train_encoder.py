@@ -11,52 +11,10 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, Tenso
 
 from longformer_encoder import LongEncoderRanker
 from data_process import read_dataset, process_mention_data
+from data_process_conll import process_conll_data
 from params import Parser
 import utils
 from evaluate_encoder import ner_eval, in_batch_el_eval
-
-#def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
-#def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
-# def evaluate(ranker, valid_dataloader, params, device):
-#     ranker.model.eval()
-
-#     if params['silent']:
-#         iter_ = valid_dataloader
-#     else:
-#         iter_ = tqdm(valid_dataloader)
-
-#     b_tag = params['b_tag']
-#     y_true = []
-#     y_pred = []
-    
-#     for batch in iter_:
-#         batch = tuple(t.to(device) for t in batch)
-
-#         # todo: add cand_enc
-#         token_ids = batch[0]
-#         tags = batch[1]
-#         attn_mask = batch[-2]
-#         global_attn_mask = batch[-1]
-#         if params['is_biencoder']:
-#             cand_enc = batch[2]
-#             cand_enc_mask = batch[3]
-
-#         with torch.no_grad():
-#             if params['is_biencoder']:
-#                 loss, tags_pred, _ = ranker(
-#                     token_ids, attn_mask, global_attn_mask, tags, b_tag=b_tag,
-#                     golden_cand_enc=cand_enc, golden_cand_mask=cand_enc_mask
-#                 )
-#             else:
-#                 loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
-
-#         y_true.extend(tags[attn_mask].cpu().tolist())
-#         y_pred.extend(tags_pred[attn_mask].cpu().tolist())
-#         assert len(y_true)==len(y_pred)
-
-#     acc, precision_b, recall_b, f1_b, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, b_tag)
-
-#     return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
 
 
 def main(params):
@@ -107,17 +65,45 @@ def main(params):
         train_samples = train_samples[:100]
         valid_samples = valid_samples[:50]
 
-    cand_enc_path = os.path.join(params['data_path'], 'train_enc.json')
-    train_tensor_data = process_mention_data(
-        train_samples,
-        tokenizer,
-        max_context_length=params['max_context_length'],
-        silent=params['silent'],
-        end_tag=params['end_tag'],
-        is_biencoder=params['is_biencoder'],
-        cand_enc_path=cand_enc_path,
-        use_longformer=params['use_longformer']
-    )
+    if params['conll']:
+        train_tensor_data = process_conll_data(
+            train_samples,
+            tokenizer,
+            max_context_length=params['max_context_length'],
+            silent=params['silent']
+        )
+
+        valid_tensor_data = process_conll_data(
+            valid_samples,
+            tokenizer,
+            max_context_length=params['max_context_length'],
+            silent=params['silent']
+        )
+    else:
+        cand_enc_path = os.path.join(params['data_path'], 'train_enc.json')
+        train_tensor_data = process_mention_data(
+            train_samples,
+            tokenizer,
+            max_context_length=params['max_context_length'],
+            silent=params['silent'],
+            end_tag=params['end_tag'],
+            is_biencoder=params['is_biencoder'],
+            cand_enc_path=cand_enc_path,
+            use_longformer=params['use_longformer']
+        )
+
+        cand_enc_path = os.path.join(params['data_path'], 'dev_enc.json')
+        valid_tensor_data = process_mention_data(
+            valid_samples,
+            tokenizer,
+            max_context_length=params['max_context_length'],
+            silent=params['silent'],
+            end_tag=params['end_tag'],
+            is_biencoder=params['is_biencoder'],
+            cand_enc_path=cand_enc_path,
+            use_longformer=params['use_longformer']
+        )
+    
     train_tensor_data = TensorDataset(*train_tensor_data)
     if params['shuffle']:
         train_sampler = RandomSampler(train_tensor_data)
@@ -127,17 +113,6 @@ def main(params):
         train_tensor_data, sampler=train_sampler, batch_size=train_batch_size
     )
 
-    cand_enc_path = os.path.join(params['data_path'], 'dev_enc.json')
-    valid_tensor_data = process_mention_data(
-        valid_samples,
-        tokenizer,
-        max_context_length=params['max_context_length'],
-        silent=params['silent'],
-        end_tag=params['end_tag'],
-        is_biencoder=params['is_biencoder'],
-        cand_enc_path=cand_enc_path,
-        use_longformer=params['use_longformer']
-    )
     valid_tensor_data = TensorDataset(*valid_tensor_data)
     valid_sampler = SequentialSampler(valid_tensor_data)
     valid_dataloader = DataLoader(
