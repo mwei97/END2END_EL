@@ -13,49 +13,50 @@ from longformer_encoder import LongEncoderRanker
 from data_process import read_dataset, process_mention_data
 from params import Parser
 import utils
+from evaluate_encoder import ner_eval, in_batch_el_eval
 
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
-def evaluate(ranker, valid_dataloader, params, device):
-    ranker.model.eval()
+# def evaluate(ranker, valid_dataloader, params, device):
+#     ranker.model.eval()
 
-    if params['silent']:
-        iter_ = valid_dataloader
-    else:
-        iter_ = tqdm(valid_dataloader)
+#     if params['silent']:
+#         iter_ = valid_dataloader
+#     else:
+#         iter_ = tqdm(valid_dataloader)
 
-    b_tag = params['b_tag']
-    y_true = []
-    y_pred = []
+#     b_tag = params['b_tag']
+#     y_true = []
+#     y_pred = []
     
-    for batch in iter_:
-        batch = tuple(t.to(device) for t in batch)
+#     for batch in iter_:
+#         batch = tuple(t.to(device) for t in batch)
 
-        # todo: add cand_enc
-        token_ids = batch[0]
-        tags = batch[1]
-        attn_mask = batch[-2]
-        global_attn_mask = batch[-1]
-        if params['is_biencoder']:
-            cand_enc = batch[2]
-            cand_enc_mask = batch[3]
+#         # todo: add cand_enc
+#         token_ids = batch[0]
+#         tags = batch[1]
+#         attn_mask = batch[-2]
+#         global_attn_mask = batch[-1]
+#         if params['is_biencoder']:
+#             cand_enc = batch[2]
+#             cand_enc_mask = batch[3]
 
-        with torch.no_grad():
-            if params['is_biencoder']:
-                loss, tags_pred, _ = ranker(
-                    token_ids, attn_mask, global_attn_mask, tags, b_tag=b_tag,
-                    golden_cand_enc=cand_enc, golden_cand_mask=cand_enc_mask
-                )
-            else:
-                loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
+#         with torch.no_grad():
+#             if params['is_biencoder']:
+#                 loss, tags_pred, _ = ranker(
+#                     token_ids, attn_mask, global_attn_mask, tags, b_tag=b_tag,
+#                     golden_cand_enc=cand_enc, golden_cand_mask=cand_enc_mask
+#                 )
+#             else:
+#                 loss, tags_pred, _ = ranker(token_ids, attn_mask, global_attn_mask, tags)
 
-        y_true.extend(tags[attn_mask].cpu().tolist())
-        y_pred.extend(tags_pred[attn_mask].cpu().tolist())
-        assert len(y_true)==len(y_pred)
+#         y_true.extend(tags[attn_mask].cpu().tolist())
+#         y_pred.extend(tags_pred[attn_mask].cpu().tolist())
+#         assert len(y_true)==len(y_pred)
 
-    acc, precision_b, recall_b, f1_b, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, b_tag)
+#     acc, precision_b, recall_b, f1_b, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, b_tag)
 
-    return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
+#     return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
 
 
 def main(params):
@@ -66,7 +67,7 @@ def main(params):
         data_path = params['data_path'].split('/')[-2]
         #model_output_path = f'experiments/{data_path}_{params["train_batch_size"]}_{params["eval_batch_size"]}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}/'
         model_used = 'long' if params['use_longformer'] else 'bert'
-        model_output_path = f'experiments/{data_path}/{train_batch_size}_{eval_batch_size}_{model_used}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}_{params["classifier"]}/'
+        model_output_path = f'experiments/{data_path}/{params["max_context_length"]}_{train_batch_size}_{eval_batch_size}_{model_used}_{params["is_biencoder"]}_{params["not_use_golden_tags"]}_{params["classifier"]}/'
     if not os.path.exists(model_output_path):
         os.makedirs(model_output_path)
     print('Model saved to: ', model_output_path)
@@ -78,13 +79,22 @@ def main(params):
 
     device = ranker.device
 
-    # todo: optimizer
+    start_epoch = 0
+
     optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
     model_path = params.get('model_path', None)
     if model_path is not None:
-        checkpoint = torch.load(model_path+'last_epoch')
+        # load optim state
+        model_name = params.get('model_name')
+        checkpoint = torch.load(model_path+model_name)
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
-    epochs = params['epochs']
+        # load last epoch
+        with open(os.path.join(model_output, 'training_params.json')) as f:
+            prev_params = json.load(f)
+        start_epoch = prev_params['epochs']
+
+    epochs = params['epochs']+start_epoch
+    params['epochs'] = epochs
     b_tag = params['b_tag']
 
     # prepare data
@@ -131,13 +141,12 @@ def main(params):
         valid_tensor_data, sampler=valid_sampler, batch_size=eval_batch_size
     )
 
-    utils.write_to_file(
-        os.path.join(model_output_path, 'training_params.txt'), str(params)
-    )
+    with open(os.path.join(model_output, 'training_params.json'), 'w') as outf:
+        json.dump(params, outf)
 
     model.train()
 
-    for epoch in range(epochs):
+    for epoch in range(start_epoch, epochs):
         total = 0
         running_loss = 0.0
 
@@ -185,12 +194,15 @@ def main(params):
         # optim.step()
         # optim.zero_grad()
 
-        #if epoch%3==0 or epoch==(epochs-1):
-        res = evaluate(ranker, valid_dataloader, params, device)
+        # evaluate on valid_dataloader
         print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f}')
-        print(f'Validation accuracy: {res[0]:.4f}')
-        print(f'Start tag metrics: precision {res[1]:.4f}, recall {res[2]:.4f}, F1 {res[3]:.4f}')
-        print(f'F1 macro: {res[4]:.4f}, F1 micro: {res[5]:.4f}')
+        if params['silent']:
+            iter_ = valid_dataloader
+        else:
+            iter_ = tqdm(valid_dataloader)
+        ner_eval(ranker, iter_, params, device)
+        if params['is_biencoder']:
+            in_batch_el_eval(ranker, iter_, params, device)
 
         model.train()
 

@@ -10,8 +10,9 @@ from data_process import read_dataset, process_mention_data
 from params import EvalParser
 import utils
 
-def ner_eval(ranker, valid_dataloader, params, device):
-    pos_tag = params['pos_tag']
+def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
+    ranker.model.eval()
+    #pos_tag = params['pos_tag']
     y_true = []
     y_pred = []
 
@@ -36,11 +37,12 @@ def ner_eval(ranker, valid_dataloader, params, device):
     acc, precision, recall, f1, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, pos_tag)
 
     # print result
-    print(f'Test accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
+    print(f'Accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
     print(f'Tag to investigate is {pos_tag}, metrics: precision {precision:.4f}, recall {recall:.4f}, F1 {f1:.4f}')
 
 
 def in_batch_el_eval(ranker, valid_dataloader, params, device):
+    ranker.model.eval()
 
     for batch in valid_dataloader:
         batch = tuple(t.to(device) for t in batch)

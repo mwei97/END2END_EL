@@ -71,17 +71,25 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--data_path',
-            default='END2END_EL/data/AIDA-YAGO2-wiki_content-NEW/tokenized',
+            default='../data/AIDA-YAGO2_longformer/tokenized',
             type=str
         )
         parser.add_argument(
             '--output_path',
             type=str,
-            required=False)
+            required=False
+        )
         parser.add_argument(
             '--model_path',
             type=str,
-            required=False)
+            required=False
+        )
+        parser.add_argument(
+            '--model_name',
+            default='last_epoch',
+            type=str,
+            required=False
+        )
 
 class EvalParser(argparse.ArgumentParser):
     def __init__(self):
@@ -159,7 +167,7 @@ class EvalParser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--data_path',
-            default='END2END_EL/data/AIDA-YAGO2-wiki_content-NEW/tokenized',
+            default='../data/AIDA-YAGO2_longformer/tokenized',
             type=str
         )
         parser.add_argument(

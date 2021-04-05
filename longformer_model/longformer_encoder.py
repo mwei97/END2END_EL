@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from transformers import LongformerModel, LongformerTokenizer
 from transformers import BertModel, BertTokenizer
-#from pytorch_transformers.modeling_bert import BertModel
-#from pytorch_transformers.tokenization_bert import BertTokenizer
 
 class LongTagger(nn.Module):
     def __init__(self, longformer_output_dim, num_tags, classifier='linear'):
@@ -158,7 +156,8 @@ class LongEncoderRanker(nn.Module):
         self.model = LongEncoderModule(self.params)
         model_path = params.get('model_path', None)
         if model_path is not None:
-            checkpoint = torch.load(model_path+'last_epoch')
+            model_name = params.get('model_name')
+            checkpoint = torch.load(model_path+model_name)
             self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model = self.model.to(self.device)
         # # set model parallel
