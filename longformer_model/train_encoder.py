@@ -89,7 +89,7 @@ def main(params):
         checkpoint = torch.load(model_path+model_name)
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
         # load last epoch
-        with open(os.path.join(model_output, 'training_params.json')) as f:
+        with open(os.path.join(model_path, 'training_params.json')) as f:
             prev_params = json.load(f)
         start_epoch = prev_params['epochs']
 
@@ -141,7 +141,7 @@ def main(params):
         valid_tensor_data, sampler=valid_sampler, batch_size=eval_batch_size
     )
 
-    with open(os.path.join(model_output, 'training_params.json'), 'w') as outf:
+    with open(os.path.join(model_output_path, 'training_params.json'), 'w') as outf:
         json.dump(params, outf)
 
     model.train()
