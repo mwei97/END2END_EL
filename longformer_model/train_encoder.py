@@ -8,22 +8,11 @@ import io
 from tqdm import tqdm, trange
 from transformers import LongformerModel, LongformerTokenizer
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 from longformer_encoder import LongEncoderRanker
 from data_process import read_dataset, process_mention_data
 from params import Parser
 import utils
-
-def get_metrics_result(y_true, y_pred, b_tag):
-    acc = accuracy_score(y_true, y_pred)
-    precision_b = precision_score(y_true, y_pred, labels=[b_tag], average='micro')
-    recall_b = recall_score(y_true, y_pred, labels=[b_tag], average='micro')
-    f1_b = f1_score(y_true, y_pred, labels=[b_tag], average='micro')
-    f1_macro = f1_score(y_true, y_pred, average='macro')
-    f1_micro = f1_score(y_true, y_pred, average='micro')
-
-    return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
 
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=0):
 #def evaluate(ranker, valid_dataloader, params, device, pad_id=-1):
@@ -64,7 +53,7 @@ def evaluate(ranker, valid_dataloader, params, device):
         y_pred.extend(tags_pred[attn_mask].cpu().tolist())
         assert len(y_true)==len(y_pred)
 
-    acc, precision_b, recall_b, f1_b, f1_macro, f1_micro = get_metrics_result(y_true, y_pred, b_tag)
+    acc, precision_b, recall_b, f1_b, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, b_tag)
 
     return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
 
