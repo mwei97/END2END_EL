@@ -56,13 +56,18 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--train_batch_size',
-            default=8,
+            default=16,
             type=int
         )
         parser.add_argument(
             '--eval_batch_size',
-            default=4,
+            default=16,
             type=int
+        )
+        parser.add_argument(
+            '--shuffle',
+            default=False,
+            action='store_true'
         )
         parser.add_argument(
             '--epochs',
@@ -162,7 +167,7 @@ class EvalParser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--eval_batch_size',
-            default=4,
+            default=16,
             type=int
         )
         parser.add_argument(

@@ -119,7 +119,10 @@ def main(params):
         use_longformer=params['use_longformer']
     )
     train_tensor_data = TensorDataset(*train_tensor_data)
-    train_sampler = SequentialSampler(train_tensor_data)
+    if params['shuffle']:
+        train_sampler = RandomSampler(train_tensor_data)
+    else:
+        train_sampler = SequentialSampler(train_tensor_data)
     train_dataloader = DataLoader(
         train_tensor_data, sampler=train_sampler, batch_size=train_batch_size
     )
