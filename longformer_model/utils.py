@@ -5,14 +5,17 @@ from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_sc
 CONFIG_NAME = "config.json"
 WEIGHTS_NAME = "pytorch_model.bin"
 
-def get_metrics_result(y_true, y_pred, b_tag):
+def get_metrics_result(y_true, y_pred, b_tag=None):
     acc = accuracy_score(y_true, y_pred)
-    precision_b = precision_score(y_true, y_pred, labels=[b_tag], average='micro')
-    recall_b = recall_score(y_true, y_pred, labels=[b_tag], average='micro')
-    f1_b = f1_score(y_true, y_pred, labels=[b_tag], average='micro')
     f1_macro = f1_score(y_true, y_pred, average='macro')
     f1_micro = f1_score(y_true, y_pred, average='micro')
-    return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
+    if b_tag is not None:
+        precision_b = precision_score(y_true, y_pred, labels=[b_tag], average='micro')
+        recall_b = recall_score(y_true, y_pred, labels=[b_tag], average='micro')
+        f1_b = f1_score(y_true, y_pred, labels=[b_tag], average='micro')
+        return (acc, precision_b, recall_b, f1_b, f1_macro, f1_micro)
+    else:
+        return (acc, f1_macro, f1_micro)
 
 def write_to_file(path, string, mode="w"):
     with open(path, mode) as writer:

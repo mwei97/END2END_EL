@@ -197,6 +197,11 @@ class EvalParser(argparse.ArgumentParser):
             required=False
         )
         parser.add_argument(
+            '--cand_enc_path',
+            default='../models/all_entities_large.t7',
+            type=str
+        )
+        parser.add_argument(
             '--conll',
             default=False,
             action='store_true'

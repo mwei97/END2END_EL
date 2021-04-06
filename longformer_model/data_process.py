@@ -218,9 +218,9 @@ def process_mention_data(
             sample_id = sample['id']
             num_mentions = len(context_tokens['mention_idxs'])
             cand_enc = np.array(golden_cand_enc[sample_id][:num_mentions])
-            #assert len(cand_enc)==num_mentions
-            #cand_enc = np.random.randn(num_mentions, 1024)
+            label_id = sample['label_id'][:num_mentions]
             context_tokens['cand_enc'] = cand_enc
+            context_tokens['label_id'] = label_id
 
         processed_samples.append(context_tokens)
     
@@ -231,10 +231,13 @@ def process_mention_data(
     global_attn_mask_vecs = torch.tensor(select_field(processed_samples, 'global_attention_mask'), dtype=torch.bool)#.to(device)
     if is_biencoder:
         cand_enc_vecs, cand_enc_mask = select_field_with_padding(processed_samples, 'cand_enc', pad_idx=np.zeros(1024)) # todo: dim as variable?
+        label_id_vecs, label_id_mask = select_field_with_padding(processed_samples, 'label_id', pad_idx=-1)
         # (num_samples, max_num_mentions, cand_enc_dim)
         cand_enc_vecs = torch.tensor(cand_enc_vecs, dtype=torch.float)
         cand_enc_mask = torch.tensor(cand_enc_mask, dtype=torch.bool)
-        return (context_vecs, ner_tag_vecs, cand_enc_vecs, cand_enc_mask, mask_vecs, global_attn_mask_vecs)
+        label_id_vecs = torch.tensor(label_id_vecs, dtype=torch.long)
+        label_id_mask = torch.tensor(label_id_mask, dtype=torch.bool)
+        return (context_vecs, ner_tag_vecs, cand_enc_vecs, cand_enc_mask, label_id_vecs, label_id_mask, mask_vecs, global_attn_mask_vecs)
     else:
         return (context_vecs, ner_tag_vecs, mask_vecs, global_attn_mask_vecs)
 

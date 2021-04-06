@@ -20,7 +20,7 @@ def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
         batch = tuple(t.to(device) for t in batch)
         cand_enc = cand_enc_mask = None
         if params['is_biencoder']:
-            token_ids, tags, cand_enc, cand_enc_mask, attn_mask, global_attn_mask = batch
+            token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
         else:
             token_ids, tags, attn_mask, global_attn_mask = batch
         
@@ -34,7 +34,7 @@ def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
         y_pred.extend(tags_pred[attn_mask].cpu().tolist())
         assert len(y_true)==len(y_pred)
 
-    acc, precision, recall, f1, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, pos_tag)
+    acc, precision, recall, f1, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred, b_tag=pos_tag)
 
     # print result
     print(f'Accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
@@ -50,7 +50,7 @@ def in_batch_el_eval(ranker, valid_dataloader, params, device):
 
         total = corr = 0
 
-        token_ids, tags, cand_enc, cand_enc_mask, attn_mask, global_attn_mask = batch
+        token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
 
         with torch.no_grad():
             raw_ctxt_encoding = ranker.model.get_raw_ctxt_encoding(token_ids, attn_mask, global_attn_mask)
@@ -72,8 +72,31 @@ def in_batch_el_eval(ranker, valid_dataloader, params, device):
     print(f'Test in batch accuracy for EL is: {acc:.4f}')
 
 
-#def kb_el_eval():
+def kb_el_eval(ranker, valid_dataloader, params, device, all_cand_enc):
+    ranker.model.eval()
+    y_true = []
+    y_pred = []
 
+    for batch in valid_dataloader:
+        batch = tuple(t.to(device) for t in batch)
+        assert params['is_biencoder']
+
+        token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
+
+        with torch.no_grad():
+            raw_ctxt_encoding = ranker.model.get_raw_ctxt_encoding(token_ids, attn_mask, global_attn_mask)
+            ctxt_embeds = ranker.model.get_ctxt_embeds(raw_ctxt_encoding, tags)
+
+        scores = ctxt_embeds.mm(all_cand_enc.t())
+
+        true_labels = label_ids[label_mask].cpu().tolist()
+        y_true.extend(true_labels)
+        pred_labels = torch.argmax(scores, dim=1).cpu().tolist()
+        y_pred.extend(pred_labels)
+        assert len(y_true)==len(y_pred)
+
+    acc, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred)
+    print(f'Accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
 
 
 def main(params):
@@ -144,7 +167,8 @@ def main(params):
 
     if params['kb_el_eval']:
         print('-----Start evaluating EL task in knowledge base-----')
-        kb_el_eval() # todo: add argument
+        all_cand_enc = torch.load(params['cand_enc_path'])
+        kb_el_eval(ranker, iter_, params, device, all_cand_enc)
 
 
 if __name__ == '__main__':
