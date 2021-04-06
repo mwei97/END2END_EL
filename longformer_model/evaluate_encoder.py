@@ -7,12 +7,12 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, Tenso
 
 from longformer_encoder import LongEncoderRanker
 from data_process import read_dataset, process_mention_data
+from data_process_conll import process_conll_data
 from params import EvalParser
 import utils
 
 def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
     ranker.model.eval()
-    #pos_tag = params['pos_tag']
     y_true = []
     y_pred = []
 
@@ -102,17 +102,25 @@ def main(params):
     # load data
     eval_batch_size = params['eval_batch_size']
     valid_samples = read_dataset(params['data_path'], 'test')
-    cand_enc_path = os.path.join(params['data_path'], 'test_enc.json')
-    valid_tensor_data = process_mention_data(
-        valid_samples,
-        tokenizer,
-        max_context_length=params['max_context_length'],
-        silent=params['silent'],
-        end_tag=params['end_tag'],
-        is_biencoder=params['is_biencoder'],
-        cand_enc_path=cand_enc_path,
-        use_longformer=params['use_longformer']
-    )
+    if params['conll']:
+        valid_tensor_data = process_conll_data(
+            valid_samples,
+            tokenizer,
+            max_context_length=params['max_context_length'],
+            silent=params['silent']
+        )
+    else:
+        cand_enc_path = os.path.join(params['data_path'], 'test_enc.json')
+        valid_tensor_data = process_mention_data(
+            valid_samples,
+            tokenizer,
+            max_context_length=params['max_context_length'],
+            silent=params['silent'],
+            end_tag=params['end_tag'],
+            is_biencoder=params['is_biencoder'],
+            cand_enc_path=cand_enc_path,
+            use_longformer=params['use_longformer']
+        )
     valid_tensor_data = TensorDataset(*valid_tensor_data)
     valid_sampler = SequentialSampler(valid_tensor_data)
     valid_dataloader = DataLoader(
