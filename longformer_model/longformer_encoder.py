@@ -38,7 +38,8 @@ class LongEncoderModule(nn.Module):
             self.NULL_IDX = 0
             longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1)
         #num_tags = 4 if not self.params['end_tag'] else 5
-        num_tags = 3 if not self.params['end_tag'] else 4
+        #num_tags = 3 if not self.params['end_tag'] else 4
+        num_tags = 9 if self.params['conll'] else 3
         self.config = self.ctxt_encoder.config
         self.tagger = LongTagger(longformer_output_dim, num_tags, self.params['classifier'])
         self.linear_compression = None
@@ -142,7 +143,8 @@ class LongEncoderRanker(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_gpu = torch.cuda.device_count() # todo
         #self.num_tags = 4 if not self.params['end_tag'] else 5
-        self.num_tags = 3 if not self.params['end_tag'] else 4
+        #self.num_tags = 3 if not self.params['end_tag'] else 4
+        self.num_tags = 9 if self.params['conll'] else 3
         self.is_biencoder = params['is_biencoder']
         self.use_golden_tags = not params['not_use_golden_tags']
         # init tokenizer

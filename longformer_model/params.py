@@ -196,3 +196,8 @@ class EvalParser(argparse.ArgumentParser):
             type=str,
             required=False
         )
+        parser.add_argument(
+            '--conll',
+            default=False,
+            action='store_true'
+        )
