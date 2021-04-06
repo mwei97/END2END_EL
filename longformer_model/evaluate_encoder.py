@@ -108,19 +108,21 @@ def main(params):
     else:
         params['is_biencoder'] = False
 
-    # load model
+    # init model
     ranker = LongEncoderRanker(params)
     tokenizer = ranker.tokenizer
-    model = ranker.model
-    # load optimizer
-    optim = torch.optim.Adam(model.parameters(), lr = params['learning_rate'])
+    device = ranker.device
+    
     model_name = params.get('model_name')
     if model_name is None:
         model_name = 'last_epoch'
-    checkpoint = torch.load(model_path+model_name)
+    checkpoint = torch.load(os.path.join(model_path, model_name), map_location=device)
+    # load model
+    ranker.model.load_state_dict(checkpoint['model_state_dict'])
+    model = ranker.model
+    # load optimizer
+    optim = torch.optim.Adam(model.parameters(), lr = params['learning_rate'])
     optim.load_state_dict(checkpoint['optimizer_state_dict'])
-
-    device = ranker.device
 
     # load data
     eval_batch_size = params['eval_batch_size']
