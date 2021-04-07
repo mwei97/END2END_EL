@@ -9,7 +9,7 @@ from longformer_encoder import LongEncoderRanker
 from data_process import read_dataset, process_mention_data
 from data_process_conll import process_conll_data
 from params import EvalParser
-import utils
+#import utils
 
 def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
     ranker.model.eval()
@@ -45,12 +45,13 @@ def in_batch_el_eval(ranker, valid_dataloader, params, device):
     ranker.model.eval()
     y_true = []
     y_pred = []
+    total = corr = 0
 
     for batch in valid_dataloader:
         batch = tuple(t.to(device) for t in batch)
         assert params['is_biencoder']
 
-        total = corr = 0
+        #total = corr = 0
 
         token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
 
@@ -62,23 +63,24 @@ def in_batch_el_eval(ranker, valid_dataloader, params, device):
         cand_enc = cand_enc[cand_enc_mask]
         scores = ctxt_embeds.mm(cand_enc.t())
 
-        true_labels = label_ids[label_mask].cpu().tolist()
-        y_true.extend(true_labels)
+        # true_labels = label_ids[label_mask].cpu().tolist()
+        # y_true.extend(true_labels)
 
-        id2label = {i:lab for i,lab in enumerate(true_labels)}
-        pred_inds = torch.argmax(scores, dim=1).cpu().tolist()
-        pred_labels = [id2label[i] for i in pred_inds]
-        y_pred.extend(pred_labels)
-        assert len(y_true)==len(y_pred)
+        # id2label = {i:lab for i,lab in enumerate(true_labels)}
+        # pred_inds = torch.argmax(scores, dim=1).cpu().tolist()
+        # pred_labels = [id2label[i] for i in pred_inds]
+        # y_pred.extend(pred_labels)
+        # assert len(y_true)==len(y_pred)
 
-    acc, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred)
-    print(f'Accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
-    #     true_labels = torch.LongTensor(torch.arange(scores.size(1)))
-    #     total += pred_labels.size(0)
-    #     corr += sum(true_labels==pred_labels).item()
-    # # do I need F1 scores for EL?
-    # acc = corr / total * 1.
-    # print(f'Test in batch accuracy for EL is: {acc:.4f}')
+    # acc, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred)
+    # print(f'Accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
+        pred_labels = torch.argmax(scores, dim=1).cpu()
+        true_labels = torch.LongTensor(torch.arange(scores.size(1)))
+        total += pred_labels.size(0)
+        corr += sum(true_labels==pred_labels).item()
+    # do I need F1 scores for EL?
+    acc = corr / total * 1.
+    print(f'Test in batch accuracy for EL is: {acc:.4f}')
 
 
 def kb_el_eval(ranker, valid_dataloader, params, device, all_cand_enc):
