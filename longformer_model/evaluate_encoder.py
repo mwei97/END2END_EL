@@ -203,11 +203,12 @@ def main(params):
         print('-----Start evaluating EL task in batch-----')
         in_batch_el_eval(ranker, iter_, params, device)
 
-    if parmas['cand_set_eval']:
+    if params['cand_set_eval']:
         print('-----Start evaluating EL task in selected candidate set-----')
         cand_set_enc = torch.load(params['selected_set_path'], map_location=device)
         with open(params['id_to_label_path']) as f:
             id2label = json.load(f)
+        id2label = {int(k):v for k,v in id2label.items()}
         cand_set_eval(ranker, iter_, params, device, cand_set_enc, id2label)
 
     if params['kb_el_eval']:
