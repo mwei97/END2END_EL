@@ -180,6 +180,8 @@ class LongEncoderRanker(nn.Module):
         golden_cand_enc,
         golden_cand_mask,
         ctxt_embeds,
+        label_ids,
+        label_mask,
         use_golden_tags=True,
         golden_tags=None,
         pred_tags=None
@@ -239,7 +241,9 @@ class LongEncoderRanker(nn.Module):
         golden_tags,
         b_tag=1,
         golden_cand_enc=None,
-        golden_cand_mask=None
+        golden_cand_mask=None,
+        label_ids=None,
+        label_mask=None
     ):
         ctxt_outs = self.model(
             token_idx_ctxt, mask_ctxt, global_attn_mask_ctxt,
@@ -253,7 +257,7 @@ class LongEncoderRanker(nn.Module):
         if self.is_biencoder:
             ctxt_embeds = ctxt_outs['ctxt_embeds']
             cand_loss, _ = self.score_candidate(
-                golden_cand_enc, golden_cand_mask, ctxt_embeds,
+                golden_cand_enc, golden_cand_mask, ctxt_embeds, label_ids, label_mask
                 use_golden_tags=self.use_golden_tags,
                 golden_tags=golden_tags,
                 pred_tags=ctxt_tags

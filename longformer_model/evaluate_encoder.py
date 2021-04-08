@@ -19,7 +19,7 @@ def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
 
     for batch in valid_dataloader:
         batch = tuple(t.to(device) for t in batch)
-        cand_enc = cand_enc_mask = None
+        cand_enc = cand_enc_mask = label_ids = label_mask = None
         if params['is_biencoder']:
             token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
         else:
@@ -28,7 +28,8 @@ def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
         with torch.no_grad():
             _, tags_pred, _ = ranker(
                 token_ids, attn_mask, global_attn_mask, tags,
-                golden_cand_enc=cand_enc, golden_cand_mask=cand_enc_mask
+                golden_cand_enc=cand_enc, golden_cand_mask=cand_enc_mask,
+                label_ids=label_ids, label_mask=label_mask
             )
 
         y_true.extend(tags[attn_mask].cpu().tolist())

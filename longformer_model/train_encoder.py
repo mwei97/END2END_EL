@@ -139,21 +139,20 @@ def main(params):
             #model.zero_grad()
 
             batch = tuple(t.to(device) for t in batch)
-            
-            # todo: add cand_enc
-            token_ids = batch[0]
-            tags = batch[1]
-            attn_mask = batch[-2]
-            global_attn_mask = batch[-1]
-            cand_enc = cand_enc_mask = None
+
+            cand_enc = cand_enc_mask = label_ids = label_mask = None
             if params['is_biencoder']:
-                cand_enc = batch[2]
-                cand_enc_mask = batch[3]
+                token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
+            else:
+                token_ids, tags, attn_mask, global_attn_mask = batch
+
             loss, _, _ = ranker(
                 token_ids, attn_mask, global_attn_mask, tags, 
                 b_tag=b_tag,
                 golden_cand_enc=cand_enc,
-                golden_cand_mask=cand_enc_mask
+                golden_cand_mask=cand_enc_mask,
+                label_ids=label_ids,
+                label_mask=label_mask
             )
             
             # Perform backpropagation
