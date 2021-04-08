@@ -257,7 +257,7 @@ class LongEncoderRanker(nn.Module):
         if self.is_biencoder:
             ctxt_embeds = ctxt_outs['ctxt_embeds']
             cand_loss, _ = self.score_candidate(
-                golden_cand_enc, golden_cand_mask, ctxt_embeds, label_ids, label_mask
+                golden_cand_enc, golden_cand_mask, ctxt_embeds, label_ids, label_mask,
                 use_golden_tags=self.use_golden_tags,
                 golden_tags=golden_tags,
                 pred_tags=ctxt_tags

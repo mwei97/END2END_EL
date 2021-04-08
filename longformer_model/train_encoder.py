@@ -43,15 +43,17 @@ def main(params):
         checkpoint = torch.load(os.path.join(model_path, model_name), map_location=device)
         # load model state
         ranker.model.load_state_dict(checkpoint['model_state_dict'])
+        model = ranker.model
         # load optim state
-        optim = torch.optim.Adam(ranker.model.parameters(), lr=params['learning_rate'])
+        optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
         # load last epoch
         with open(os.path.join(model_path, 'training_params.json')) as f:
             prev_params = json.load(f)
         start_epoch = prev_params['epochs']
-
-    model = ranker.model
+    else:
+        model = ranker.model
+        optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
 
     epochs = params['epochs']+start_epoch
     params['epochs'] = epochs
