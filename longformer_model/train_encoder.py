@@ -176,11 +176,11 @@ def main(params):
         # optim.zero_grad()
 
         # evaluate on valid_dataloader
-        print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f}')
         if params['silent']:
             iter_ = valid_dataloader
         else:
             iter_ = tqdm(valid_dataloader)
+        print (f'Epoch: {epoch} Epoch Loss: {running_loss/total:.4f}')
         ner_eval(ranker, iter_, params, device)
         if params['is_biencoder']:
             # in batch negative
