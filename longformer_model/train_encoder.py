@@ -33,12 +33,10 @@ def main(params):
     # init model
     ranker = LongEncoderRanker(params)
     tokenizer = ranker.tokenizer
-
     device = ranker.device
 
     start_epoch = 0
-
-    optim = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
+    
     model_path = params.get('model_path', None)
     if model_path is not None:
         model_name = params.get('model_name')
@@ -46,6 +44,7 @@ def main(params):
         # load model state
         ranker.model.load_state_dict(checkpoint['model_state_dict'])
         # load optim state
+        optim = torch.optim.Adam(ranker.model.parameters(), lr=params['learning_rate'])
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
         # load last epoch
         with open(os.path.join(model_path, 'training_params.json')) as f:
