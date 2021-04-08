@@ -187,8 +187,7 @@ def main(params):
             #in_batch_el_eval(ranker, iter_, params, device)
             # eval against all entities in train, dev, and test
             cand_set_enc = torch.load(params['selected_set_path'], map_location=device)
-            with open(params['id_to_label_path']) as f:
-                id2label = json.load(f)
+            id2label = torch.load(params['id_to_label_path'], map_location=device)
             cand_set_eval(ranker, iter_, params, device, cand_set_enc, id2label)
 
         model.train()

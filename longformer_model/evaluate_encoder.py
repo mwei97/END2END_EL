@@ -102,7 +102,7 @@ def cand_set_eval(ranker, valid_dataloader, params, device, cand_set_enc, id2lab
         true_labels = label_ids[label_mask].cpu().tolist()
         y_true.extend(true_labels)
         pred_inds = torch.argmax(scores, dim=1).cpu().tolist()
-        pred_labels = [id2label[i] for i in pred_inds]
+        pred_labels = [id2label[i].item() for i in pred_inds]
         y_pred.extend(pred_labels)
         assert len(y_true)==len(y_pred)
     
@@ -207,9 +207,10 @@ def main(params):
     if params['cand_set_eval']:
         print('-----Start evaluating EL task in selected candidate set-----')
         cand_set_enc = torch.load(params['selected_set_path'], map_location=device)
-        with open(params['id_to_label_path']) as f:
-            id2label = json.load(f)
-        id2label = {int(k):v for k,v in id2label.items()}
+        id2label = torch.load(params['id_to_label_path'], map_location=device)
+        # with open(params['id_to_label_path']) as f:
+        #     id2label = json.load(f)
+        # id2label = {int(k):v for k,v in id2label.items()}
         cand_set_eval(ranker, iter_, params, device, cand_set_enc, id2label)
 
     if params['kb_el_eval']:

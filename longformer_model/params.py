@@ -223,7 +223,7 @@ class EvalParser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--id_to_label_path',
-            default='../models/candidate_set_id2label.json',
+            default='../models/id2label.t7',
             type=str
         )
         parser.add_argument(
