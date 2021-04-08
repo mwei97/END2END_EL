@@ -213,11 +213,11 @@ class LongEncoderRanker(nn.Module):
                     continue
             scores = ctxt_embeds.mm(cand_enc.t())
 
-        #target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
-        true_labels = label_ids[label_mask].tolist()
-        unique_labels = list(dict.fromkeys(true_labels))
-        label2idx = {lab:i for i,lab in enumerate(unique_labels)}
-        target = torch.LongTensor([label2idx[lab] for lab in true_labels]).to(self.device)
+        target = torch.LongTensor(torch.arange(scores.size(1))).to(self.device)
+        #true_labels = label_ids[label_mask].tolist()
+        #unique_labels = list(dict.fromkeys(true_labels))
+        #label2idx = {lab:i for i,lab in enumerate(unique_labels)}
+        #target = torch.LongTensor([label2idx[lab] for lab in true_labels]).to(self.device)
 
         cand_loss = loss_function(scores, target)
         return cand_loss, scores
