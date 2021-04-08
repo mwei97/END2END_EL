@@ -1,6 +1,7 @@
 import os
 import argparse
 import torch
+import json
 
 from tqdm import tqdm, trange
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
@@ -80,6 +81,32 @@ def in_batch_el_eval(ranker, valid_dataloader, params, device):
     # acc = corr / total * 1.
     # print(f'Test in batch accuracy for EL is: {acc:.4f}')
 
+def cand_set_eval(ranker, valid_dataloader, params, device, cand_set_enc, id2label):
+    ranker.model.eval()
+    y_true = []
+    y_pred = []
+
+    for batch in valid_dataloader:
+        batch = tuple(t.to(device) for t in batch)
+        assert params['is_biencoder']
+
+        token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
+
+        with torch.no_grad():
+            raw_ctxt_encoding = ranker.model.get_raw_ctxt_encoding(token_ids, attn_mask, global_attn_mask)
+            ctxt_embeds = ranker.model.get_ctxt_embeds(raw_ctxt_encoding, tags)
+
+        scores = ctxt_embeds.mm(cand_set_enc.t())
+
+        true_labels = label_ids[label_mask].cpu().tolist()
+        y_true.extend(true_labels)
+        pred_inds = torch.argmax(scores, dim=1).cpu().tolist()
+        pred_labels = [id2label[i] for i in pred_inds]
+        y_pred.extend(pred_labels)
+        assert len(y_true)==len(y_pred)
+    
+    acc, f1_macro, f1_micro = utils.get_metrics_result(y_true, y_pred)
+    print(f'Accuracy: {acc:.4f}, F1 macro: {f1_macro:.4f}, F1 micro: {f1_micro:.4f}')
 
 def kb_el_eval(ranker, valid_dataloader, params, device, all_cand_enc):
     ranker.model.eval()
@@ -112,7 +139,7 @@ def main(params):
     assert params['model_path'] is not None
     model_path = params['model_path']
 
-    if params['in_batch_el_eval'] or params['kb_el_eval']:
+    if params['in_batch_el_eval'] or params['kb_el_eval'] or params['cand_set_eval']:
         params['is_biencoder'] = True
     else:
         params['is_biencoder'] = False
@@ -176,9 +203,16 @@ def main(params):
         print('-----Start evaluating EL task in batch-----')
         in_batch_el_eval(ranker, iter_, params, device)
 
+    if parmas['cand_set_eval']:
+        print('-----Start evaluating EL task in selected candidate set-----')
+        cand_set_enc = torch.load(params['selected_set_path'], map_location=device)
+        with open(params['id_to_label_path']) as f:
+            id2label = json.load(f)
+        cand_set_eval(ranker, iter_, params, device, cand_set_enc, id2label)
+
     if params['kb_el_eval']:
         print('-----Start evaluating EL task in knowledge base-----')
-        all_cand_enc = torch.load(params['cand_enc_path'])
+        all_cand_enc = torch.load(params['all_cand_path'], map_location=device)
         kb_el_eval(ranker, iter_, params, device, all_cand_enc)
 
 

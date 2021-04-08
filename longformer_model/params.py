@@ -100,6 +100,16 @@ class Parser(argparse.ArgumentParser):
             default=False,
             action='store_true'
         )
+        parser.add_argument(
+            '--selected_set_path',
+            default='../models/el_candidate_set.t7',
+            type=str
+        )
+        parser.add_argument(
+            '--id_to_label_path',
+            default='../models/candidate_set_id2label.json',
+            type=str
+        )
 
 class EvalParser(argparse.ArgumentParser):
     def __init__(self):
@@ -115,6 +125,11 @@ class EvalParser(argparse.ArgumentParser):
         )
         parser.add_argument(
             '--in_batch_el_eval',
+            default=False,
+            action='store_true'
+        )
+        parser.add_argument(
+            '--cand_set_eval',
             default=False,
             action='store_true'
         )
@@ -197,8 +212,18 @@ class EvalParser(argparse.ArgumentParser):
             required=False
         )
         parser.add_argument(
-            '--cand_enc_path',
+            '--all_cand_path',
             default='../models/all_entities_large.t7',
+            type=str
+        )
+        parser.add_argument(
+            '--selected_set_path',
+            default='../models/el_candidate_set.t7',
+            type=str
+        )
+        parser.add_argument(
+            '--id_to_label_path',
+            default='../models/candidate_set_id2label.json',
             type=str
         )
         parser.add_argument(

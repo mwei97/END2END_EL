@@ -14,7 +14,7 @@ from data_process import read_dataset, process_mention_data
 from data_process_conll import process_conll_data
 from params import Parser
 import utils
-from evaluate_encoder import ner_eval, in_batch_el_eval
+from evaluate_encoder import ner_eval, in_batch_el_eval, cand_set_eval
 
 
 def main(params):
@@ -183,7 +183,13 @@ def main(params):
             iter_ = tqdm(valid_dataloader)
         ner_eval(ranker, iter_, params, device)
         if params['is_biencoder']:
-            in_batch_el_eval(ranker, iter_, params, device)
+            # in batch negative
+            #in_batch_el_eval(ranker, iter_, params, device)
+            # eval against all entities in train, dev, and test
+            cand_set_enc = torch.load(params['selected_set_path'], map_location=device)
+            with open(params['id_to_label_path']) as f:
+                id2label = json.load(f)
+            cand_set_eval(ranker, iter_, params, device, cand_set_enc, id2label)
 
         model.train()
 
