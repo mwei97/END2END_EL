@@ -25,6 +25,8 @@ def ner_eval(ranker, valid_dataloader, params, device, pos_tag=1):
         else:
             token_ids, tags, attn_mask, global_attn_mask = batch
         
+        # evaluate: not leak information about tags
+        global_attn_mask = None
         with torch.no_grad():
             _, tags_pred, _ = ranker(
                 token_ids, attn_mask, global_attn_mask, tags,
@@ -56,6 +58,8 @@ def in_batch_el_eval(ranker, valid_dataloader, params, device):
 
         token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
 
+        # evaluate: not leak information about tags
+        global_attn_mask = None
         with torch.no_grad():
             raw_ctxt_encoding = ranker.model.get_raw_ctxt_encoding(token_ids, attn_mask, global_attn_mask)
             ctxt_embeds = ranker.model.get_ctxt_embeds(raw_ctxt_encoding, tags)
@@ -93,6 +97,8 @@ def cand_set_eval(ranker, valid_dataloader, params, device, cand_set_enc, id2lab
 
         token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
 
+        # evaluate: not leak information about tags
+        global_attn_mask = None
         with torch.no_grad():
             raw_ctxt_encoding = ranker.model.get_raw_ctxt_encoding(token_ids, attn_mask, global_attn_mask)
             ctxt_embeds = ranker.model.get_ctxt_embeds(raw_ctxt_encoding, tags)
@@ -120,6 +126,8 @@ def kb_el_eval(ranker, valid_dataloader, params, device, all_cand_enc):
 
         token_ids, tags, cand_enc, cand_enc_mask, label_ids, label_mask, attn_mask, global_attn_mask = batch
 
+        # evaluate: not leak information about tags
+        global_attn_mask = None
         with torch.no_grad():
             raw_ctxt_encoding = ranker.model.get_raw_ctxt_encoding(token_ids, attn_mask, global_attn_mask)
             ctxt_embeds = ranker.model.get_ctxt_embeds(raw_ctxt_encoding, tags)

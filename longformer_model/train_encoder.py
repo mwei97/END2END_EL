@@ -148,6 +148,8 @@ def main(params):
             else:
                 token_ids, tags, attn_mask, global_attn_mask = batch
 
+            # should not give out ner info
+            global_attn_mask = None
             loss, _, _ = ranker(
                 token_ids, attn_mask, global_attn_mask, tags, 
                 b_tag=b_tag,
