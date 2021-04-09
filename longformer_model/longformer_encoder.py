@@ -54,7 +54,7 @@ class LongEncoderModule(nn.Module):
     ):
         if self.params['use_longformer']:
             longformer_outputs = self.ctxt_encoder(
-                token_idx_ctxt, attention_mask=mask_ctxt, global_attention_mask=global_attn_mask_ctxt
+                token_idx_ctxt, attention_mask=mask_ctxt#, global_attention_mask=global_attn_mask_ctxt
             )
         else:
             #token_idx_ctxt, segment_idx_ctxt, _ = to_bert_input(token_idx_ctxt, self.NULL_IDX)
