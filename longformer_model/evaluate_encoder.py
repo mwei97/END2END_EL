@@ -233,4 +233,5 @@ if __name__ == '__main__':
     print(args)
 
     params = args.__dict__
+    params['use_longformer'] = not params['use_bert']
     main(params)

@@ -40,10 +40,15 @@ class Parser(argparse.ArgumentParser):
         )
         parser.add_argument('--max_grad_norm', default=1.0, type=float)
         parser.add_argument(
-            '--use_longformer', 
+            '--use_bert',
             default=False,
             action='store_true'
         )
+        # parser.add_argument(
+        #     '--use_longformer', 
+        #     default=False,
+        #     action='store_true'
+        # )
         parser.add_argument(
             '--is_biencoder', default=False, action='store_true'
         )
@@ -171,10 +176,15 @@ class EvalParser(argparse.ArgumentParser):
         )
         parser.add_argument('--max_grad_norm', default=1.0, type=float)
         parser.add_argument(
-            '--use_longformer', 
+            '--use_bert',
             default=False,
             action='store_true'
         )
+        # parser.add_argument(
+        #     '--use_longformer', 
+        #     default=False,
+        #     action='store_true'
+        # )
         # parser.add_argument(
         #     '--is_biencoder', default=False, action='store_true'
         # )
