@@ -180,7 +180,7 @@ def main(params):
             silent=params['silent']
         )
     else:
-        cand_enc_path = os.path.join(params['data_path'], 'test_enc.json')
+        cand_enc_path = os.path.join(params['data_path'], f'{params["split"]}_enc.json')
         valid_tensor_data = process_mention_data(
             valid_samples,
             tokenizer,
