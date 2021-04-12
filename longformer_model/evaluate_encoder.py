@@ -171,7 +171,7 @@ def main(params):
 
     # load data
     eval_batch_size = params['eval_batch_size']
-    valid_samples = read_dataset(params['data_path'], 'test')
+    valid_samples = read_dataset(params['data_path'], params['split'])
     if params['conll']:
         valid_tensor_data = process_conll_data(
             valid_samples,

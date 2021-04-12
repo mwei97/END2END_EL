@@ -241,3 +241,8 @@ class EvalParser(argparse.ArgumentParser):
             default=False,
             action='store_true'
         )
+        parser.add_argument(
+            '--split',
+            default='test',
+            type=str
+        )
