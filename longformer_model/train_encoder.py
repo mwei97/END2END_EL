@@ -64,10 +64,10 @@ def main(params):
     train_samples = read_dataset(params['data_path'], 'train')
     valid_samples = read_dataset(params['data_path'], 'dev')
 
-    # todo: delete later
-    if params['debug']:
-        train_samples = train_samples[:100]
-        valid_samples = valid_samples[:50]
+    if params['debug'] is not None:
+        sample_size = params['debug']
+        train_samples = train_samples[:sample_size]
+        #valid_samples = valid_samples[:50]
 
     if params['conll']:
         train_tensor_data = process_conll_data(

@@ -10,10 +10,14 @@ class Parser(argparse.ArgumentParser):
         parser.add_argument(
             '--silent', default=False, action='store_true'
         )
+        # parser.add_argument(
+        #     '--debug',
+        #     default=False,
+        #     action='store_true'
+        # )
         parser.add_argument(
             '--debug',
-            default=False,
-            action='store_true'
+            type=int
         )
         parser.add_argument(
             '--b_tag',
