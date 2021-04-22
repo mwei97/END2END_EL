@@ -159,8 +159,7 @@ class LongEntityLinker(nn.Module):
             use_golden_tags=self.use_golden_tags,
             label_ids=label_ids,
             label_mask=label_mask,
-            golden_tags=golden_tags,
-            pred_tags=ctxt_tags
+            golden_tags=golden_tags
         )
 
         return cand_loss
