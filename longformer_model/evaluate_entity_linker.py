@@ -136,5 +136,6 @@ if __name__ == '__main__':
 
     params = args.__dict__
     params['use_longformer'] = not params['use_bert']
+    params['use_golden_tags'] = True
     params['is_biencoder'] = True
     main(params)
