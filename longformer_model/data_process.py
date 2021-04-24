@@ -43,6 +43,28 @@ def select_field_with_padding(data, key1, key2=None, pad_idx=-1):
         assert len(selected_list[i]) == max_len
     return selected_list, padding_mask
 
+def sort_mentions(
+    lst, sort_map=None,
+):
+    """
+    sort_map: {orig_idx: idx in new "sorted" array}
+    """
+    new_lst = [0 for _ in range(len(lst))]
+    for i in range(len(lst)):
+        new_lst[sort_map[i]] = lst[i]
+    return new_lst
+
+
+def do_sort(
+    sample, orig_idx_to_sort_idx,
+):
+    sample['mentions'] = sort_mentions(sample['mentions'], orig_idx_to_sort_idx)
+    sample['label_id'] = sort_mentions(sample['label_id'], orig_idx_to_sort_idx)
+    sample['wikidata_id'] = sort_mentions(sample['wikidata_id'], orig_idx_to_sort_idx)
+    sample['entity'] = sort_mentions(sample['entity'], orig_idx_to_sort_idx)
+    sample['label'] = sort_mentions(sample['label'], orig_idx_to_sort_idx)
+
+
 def get_context_representation_multiple_mentions(
     sample, tokenizer, max_context_length,
     input_key='tokenized_text_ids', mention_key='tokenized_mention_idxs',
@@ -50,6 +72,16 @@ def get_context_representation_multiple_mentions(
 ):
     mention_idxs = sample[mention_key]
     input_ids = sample[input_key]
+
+    # sort mentions / entities / everything associated
+    # [[orig_index, [start, end]], ....] --> sort by start, then end
+    sort_tuples = [[i[0], i[1]] for i in sorted(enumerate(mention_idxs), key=lambda x:(x[1][0], x[1][1]))]
+    if [tup[1] for tup in sort_tuples] != mention_idxs:
+        orig_idx_to_sort_idx = {itm[0]: i for i, itm in enumerate(sort_tuples)}
+        assert [tup[1] for tup in sort_tuples] == sort_mentions(mention_idxs, orig_idx_to_sort_idx)
+        mention_idxs = [tup[1] for tup in sort_tuples]
+        sample['tokenized_mention_idxs'] = mention_idxs
+        do_sort(sample, orig_idx_to_sort_idx)
 
     all_mention_spans_range = [mention_idxs[0][0], mention_idxs[-1][1]]
     max_seq_length = max_context_length if use_longformer else max_context_length-2
