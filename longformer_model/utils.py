@@ -38,3 +38,42 @@ def save_state_dict(model, optimizer, output_dir):
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
     }, output_dir)
+
+def get_mention_boundaries(pred_tag_ids, idx2tag=None):
+    """
+    Input:
+        B-I-O tag indices
+    Return:
+        List of mention boundaries (inclusive)
+    """
+    if idx2tag is None:
+        idx2tag = {0: 'O', 1: 'B', 2: 'I'}
+
+    pred_tags = [idx2tag[i] for i in pred_tag_ids]
+    mentions = []
+    open_mention = False
+
+    for i, tag in enumerate(pred_tags):
+        if tag=='B':
+            # ...BB...
+            if open_mention:
+                mentions[-1].extend([i-1])
+                mentions.append([i])
+            # start of new mention
+            else:
+                mentions.append([i])
+                open_mention = True
+        elif tag=='I':
+            continue
+        else:
+            if open_mention:
+                mentions[-1].extend([i-1])
+                open_mention = False
+            else:
+                continue
+
+    if len(mentions)>0:
+        if len(mentions[-1])==1:
+            mentions[-1].extend([i])
+
+    return mentions
