@@ -36,7 +36,7 @@ class LongEncoderModule(nn.Module):
         else:
             # temporary change to large cased SpanBert for test
             #self.ctxt_encoder = BertModel.from_pretrained('bert-base-uncased')
-            self.ctxt_encdoer = BertModel.from_pretrained('../models/spanbert_hf')
+            self.ctxt_encoder = BertModel.from_pretrained('../models/spanbert_hf')
             self.NULL_IDX = 0
             longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1)
         #num_tags = 4 if not self.params['end_tag'] else 5
