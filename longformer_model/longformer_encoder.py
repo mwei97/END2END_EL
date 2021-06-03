@@ -36,7 +36,7 @@ class LongEncoderModule(nn.Module):
         else:
             # temporary change to large cased SpanBert for test
             #self.ctxt_encoder = BertModel.from_pretrained('bert-base-uncased')
-            self.ctxt_encoder = BertModel.from_pretrained('../models/spanbert_hf')
+            self.ctxt_encoder = BertModel.from_pretrained('../models/spanbert_hf_base')
             self.NULL_IDX = 0
             longformer_output_dim = self.ctxt_encoder.embeddings.word_embeddings.weight.size(1)
         #num_tags = 4 if not self.params['end_tag'] else 5
@@ -154,7 +154,7 @@ class LongEncoderRanker(nn.Module):
             self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
         else:
             #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-            self.tokenizer = BertTokenizer.from_pretrained('bert-large-cased', do_lower_case=False)
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=False)
         #self.pad_id = 0
         self.pad_id = -1
         # init model
